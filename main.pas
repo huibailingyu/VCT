@@ -296,6 +296,16 @@ begin
   Timer1.Enabled := False;
   Form1.Canvas.FillRect(Form1.ClientRect);
   picture_number := 0;
+  bmp_inx := 0;
+  mouse_down := 0;
+
+  show_sx := 0;
+  show_sy := 0;
+  show_ex := 0;
+  show_ey := 0;
+  show_w := 0;
+  show_h := 0;
+
   for id:=1 to 2 do
   begin
     video[id].IsVideo := False;
