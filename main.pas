@@ -696,7 +696,7 @@ begin
       begin
         video[id].FrameIndex := inx[id];
 need_encode:
-        while video[id].FrameIndex >= video[id].ReadFrameMax do
+        while video[id].FrameIndex >= video[id].ReadFrameMax - 10 do
         begin
           param := 'ffmpeg.exe -ss ' + IntToStr(video[id].ReadStartTime) +
                    ' -i ' + video[id].FullFileName +
