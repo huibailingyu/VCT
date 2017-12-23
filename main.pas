@@ -63,8 +63,6 @@ type
     SavePictureDialog1: TSavePictureDialog;
     SaveFrame21: TMenuItem;
     SaveFrm1Frm21: TMenuItem;
-    Image1: TImage;
-    Timer2: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -85,7 +83,6 @@ type
     procedure FormDblClick(Sender: TObject);
     procedure FormPaint(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure Timer2Timer(Sender: TObject);
   private
     { Private declarations }
     extension : String;
@@ -999,20 +996,6 @@ begin
   else if Form1.Cursor <> crDefault then
     Form1.Cursor := crDefault;
 
-  if (Y > Image1.Top) then
-  begin
-   if (Image1.Visible = False) then
-   begin
-     Image1.Visible := True;
-     Timer2.Enabled := False;
-   end;
-  end
-  else
-  begin
-    if Image1.Visible = True then
-       Timer2.Enabled := True;
-  end;
-
   if (mouse_down = 1) and (x <> split1) and (x >= show_sx) and (x < show_ex) and
                                             (y >= show_sy) and (y < show_ey) then
   begin
@@ -1101,11 +1084,6 @@ begin
   end
   else
     Timer1.Enabled := False;
-end;
-
-procedure TForm1.Timer2Timer(Sender: TObject);
-begin
-  Image1.Visible := False;
 end;
 
 procedure TForm1.FormDblClick(Sender: TObject);
