@@ -495,7 +495,7 @@ begin
      info := info + ' , ' + video[id].FileSizeFormat;
    end;
 
-   if (ShowInformation1.Checked) AND (picture_number > 1) then
+   if (ShowInformation1.Checked) AND (picture_number > 1) AND (Timer1.Enabled = False) Then
      info := info + ' || ' + CalculatePSNR;
   caption := info;
 end;
