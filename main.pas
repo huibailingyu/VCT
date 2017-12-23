@@ -320,11 +320,12 @@ begin
     if video[id].FrameData <> nil then
       video[id].FrameData.free;
     video[id].FrameData := TBitmap.create;
-    video[id].ReadDuration := 30;
+    video[id].ReadDuration := 1;
     video[id].ReadFrames := 0;
     video[id].ReadFrameMax := 0;
     video[id].ReadStartTime := 0;
     video[id].ReadStartIndex := 1;
+    next_filename[id] := '';
   end;
 end;
 
