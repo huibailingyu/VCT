@@ -740,7 +740,8 @@ need_encode:
               Form1.next_filename[id] := video[id].FileNamePrefix + IntToStr(video[id].FrameIndex + 1) + extension;
               if FileExists(Form1.next_filename[id]) then
               begin
-                TLoadingThread.Create(False);
+                if ((picture_number = 1) and (id = 1)) OR ((picture_number = 3) and (id = 2)) then
+                  TLoadingThread.Create(False);
               end;
               bmp_inx := 1- bmp_inx;
             end;
