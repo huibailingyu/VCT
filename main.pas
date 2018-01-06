@@ -129,7 +129,7 @@ type
 
     function DeleteDirectory(NowPath: string): Boolean;
     procedure CheckResult(b: Boolean);
-    function RunDOS(const CommandLine: string): TStrings;
+    function RunDOS(const CommandLine: string; timeout: DWORD): TStrings;
 
  protected
     procedure WMDROPFILES(var Msg : TMessage); message WM_DROPFILES;
@@ -176,7 +176,7 @@ begin
     raise Exception.Create(SysErrorMessage(GetLastError));
 end;
 
-function TForm1.RunDOS(const CommandLine: string): TStrings;
+function TForm1.RunDOS(const CommandLine: string; timeout: DWORD): TStrings;
 var
   HRead, HWrite: THandle;
   StartInfo: TStartupInfo;
@@ -217,7 +217,10 @@ begin
                      ProceInfo);
 
   CheckResult(b);
-  WaitForSingleObject(ProceInfo.hProcess, INFINITE);
+  if timeout < 0 then
+     timeout := INFINITE;
+  if WAIT_TIMEOUT = WaitForSingleObject(ProceInfo.hProcess, timeout) then;
+    TerminateThread(ProceInfo.hProcess, 0);
 
   inS := THandleStream.Create(HRead);
   if inS.Size > 0 then
@@ -342,9 +345,10 @@ begin
     video[id].FrameNumber := 0;
   end;
 
-
+  Form1.Cursor := crHourGlass;
+  caption := 'ffprobe stream';
   cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,bit_rate,duration';
-  output := RunDOS(cmd);
+  output := RunDOS(cmd, -1);
 
   video[id].CodecName := output.Values['codec_name'];
   video[id].PixFormat := output.Values['pix_fmt'];
@@ -671,7 +675,7 @@ begin
           if True OR (video[id].FileIndex < 0) then
           begin
             Form1.Cursor := crHourGlass;
-            RunDos(param);
+            RunDos(param, -1);
             Form1.Cursor := crDefault;
           end
           else
@@ -776,16 +780,16 @@ begin
       if (Pos('.h264', FileExt) > 0) OR (Pos('.264', FileExt) > 0) then
       begin
         filename := outfolder + 'h264_' + IntToStr(id) + '.mp4';
-        cmd := 'ffmpeg -i ' + video[id].FullFileName + ' -vcodec copy -an -y ' + filename;
-        RunDOS(cmd);
+        cmd := 'ffmpeg.exe -i ' + video[id].FullFileName + ' -vcodec copy -an -y ' + filename;
+        RunDOS(cmd, -1);
         video[id].FileName := ExtractFileName(video[id].FullFileName);
         VideoSetParameters(id, filename);
       end
       else if Pos('.flv', FileExt) > 0 then
       begin
         filename := outfolder + 'flv_' + IntToStr(id) + '.mp4';
-        cmd := 'ffmpeg -i ' + video[id].FullFileName + ' -vcodec copy -an -y ' + filename;
-        RunDOS(cmd);
+        cmd := 'ffmpeg.exe -i ' + video[id].FullFileName + ' -vcodec copy -an -y ' + filename;
+        RunDOS(cmd, -1);
         video[id].FullFileName := filename;
       end;
 
