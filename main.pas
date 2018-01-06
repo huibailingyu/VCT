@@ -35,10 +35,6 @@ type
     FrameData: TBitMap;
 
     ReadDuration: Integer;
-    ReadFrames: Integer;
-    ReadFrameMax: Integer;
-    ReadStartTime : Integer;
-    ReadStartIndex: Integer;
   end;
 
   TRGBTriple = packed record
@@ -104,10 +100,7 @@ type
     mouse_down : Integer;
 
     show : TBitmap;
-    show_sx: Integer;
-    show_sy: Integer;
-    show_ex: Integer;
-    show_ey: Integer;
+    show_rect: TRect;
     show_w: Integer;
     show_h: Integer;
 
@@ -269,10 +262,11 @@ begin
   picture_number := 0;
   mouse_down := 0;
 
-  show_sx := 0;
-  show_sy := 0;
-  show_ex := 0;
-  show_ey := 0;
+  show_rect := Rect(0, 0, 0, 0);
+  //show_sx := 0;
+  //show_sy := 0;
+  //show_ex := 0;
+  //show_ey := 0;
   show_w := 0;
   show_h := 0;
 
@@ -291,10 +285,6 @@ begin
       video[id].FrameData.free;
     video[id].FrameData := TBitmap.create;
     video[id].ReadDuration := 2;
-    video[id].ReadFrames := 0;
-    video[id].ReadFrameMax := 0;
-    video[id].ReadStartTime := 0;
-    video[id].ReadStartIndex := 1;
     video[id].FileIndex := -1;
     video[id].FileStream := nil;
   end;
@@ -331,7 +321,6 @@ begin
 
   if (Pos('.png', filename) > 0) OR (Pos('.jpg', filename) > 0) OR (Pos('.bmp', filename) > 0) then
   begin
-    video[id].ReadFrames := 1;
     video[id].FrameNumber := 1;
     video[id].FrameRate := 25;
     video[id].IsVideo := False;
@@ -400,9 +389,6 @@ begin
       video[id].FrameNumber := 1;
     end;
   end;
-
-  video[id].ReadFrames := Ceil(video[id].FrameRate) * video[id].ReadDuration;
-
   output.Free;
 
   caption := 'ffprobe frames';
@@ -498,13 +484,13 @@ begin
 
   if picture_number = 1 then
   begin
-    Form1.Canvas.StretchDraw(Rect(show_sx, show_sy, show_ex, show_ey), video[1].FrameData);
+    Form1.Canvas.StretchDraw(show_rect, video[1].FrameData);
   end
   else if picture_number = 2 then
   begin
 
     scale_x := video[1].FrameData.Width / show_w;
-    pos := Round(scale_x * (Split1 - show_sx));
+    pos := Round(scale_x * (Split1 - show_rect.Left));
 
     show.Canvas.CopyRect(Rect(0, 0, pos, video[1].FrameData.Height),
                          video[1].FrameData.Canvas,
@@ -512,11 +498,11 @@ begin
     show.Canvas.CopyRect(Rect(pos, 0, video[2].FrameData.Width, video[2].FrameData.Height),
                          video[2].FrameData.Canvas,
                          Rect(pos, 0, video[2].FrameData.Width, video[2].FrameData.Height));
-    Form1.Canvas.StretchDraw(Rect(show_sx, show_sy, show_ex, show_ey), show);
-    if (split1 > show_sx) and (split1 < show_ex) then
+    Form1.Canvas.StretchDraw(show_rect, show);
+    if (split1 > show_rect.Left) and (split1 < show_rect.Right) then
     begin
-      Form1.Canvas.MoveTo(split1, show_sy);
-      Form1.Canvas.LineTo(split1, show_ey-1);
+      Form1.Canvas.MoveTo(split1, show_rect.Top);
+      Form1.Canvas.LineTo(split1, show_rect.Bottom - 1);
     end;
   end;
 end;
@@ -524,24 +510,26 @@ end;
 procedure TForm1.ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
 var
   old_w : Integer;
+  sx, sy, ex, ey: Integer;
 begin
   old_w := show_w;
-  show_sx := (Form1.ClientWidth - VideoWidth) div 2;
-  if show_sx < 0 then
-    show_sx := 0;
-  show_ex := show_sx + video[1].FrameData.Width;
-  if (ToSource = 0) AND (show_ex > Form1.ClientWidth) then
-    show_ex := Form1.ClientWidth;
+  sx := (Form1.ClientWidth - VideoWidth) div 2;
+  if sx < 0 then
+    sx := 0;
+  ex := sx + video[1].FrameData.Width;
+  if (ToSource = 0) AND (ex > Form1.ClientWidth) then
+    ex := Form1.ClientWidth;
 
-  show_sy := (Form1.ClientHeight - VideoHeight) div 2;
-  if show_sy < 0 then
-    show_sy := 0;
-  show_ey := show_sy + video[1].FrameData.Height;
-  if (ToSource = 0) AND (show_ey > Form1.ClientHeight) then
-    show_ey := Form1.ClientHeight;
+  sy := (Form1.ClientHeight - VideoHeight) div 2;
+  if sy < 0 then
+    sy := 0;
+  ey := sy + video[1].FrameData.Height;
+  if (ToSource = 0) AND (ey > Form1.ClientHeight) then
+    ey := Form1.ClientHeight;
 
-  show_w := show_ex - show_sx;
-  show_h := show_ey - show_sy;
+  show_rect := Rect(sx, sy, ex, ey);
+  show_w := ex - sx;
+  show_h := ey - sy;
 
   if (old_w > 0) AND (old_w <> show_w) then
     Split1 := Round(1.0 * Split1 * show_w / old_w)
@@ -1028,8 +1016,8 @@ begin
   else if Form1.Cursor <> crDefault then
     Form1.Cursor := crDefault;
 
-  if (mouse_down = 1) and (x <> split1) and (x >= show_sx) and (x < show_ex) and
-                                            (y >= show_sy) and (y < show_ey) then
+  if (mouse_down = 1) and (x <> split1) and (x >= show_rect.Left) and (x < show_rect.Right) and
+                                            (y >= show_rect.Top) and (y < show_rect.Bottom) then
   begin
     split1 := x;
     ShowPicture;
@@ -1118,7 +1106,7 @@ begin
     ResetForm(0);
   if picture_number > 0 then
     ShowPicture;
-
+          {
   if False AND (video[1].FrameNumber > 0) AND (video[1].FrameData.Width > Form1.ClientWidth) then
   begin
     if show_w < video[1].FrameData.Width then
@@ -1133,6 +1121,7 @@ begin
     show_h := show_ey - show_sy;
     ShowPicture;
   end;
+  }
 end;
 
 end.
