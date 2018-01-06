@@ -30,8 +30,7 @@ type
     FrameHeight: String;
     FileDuration: String;
 
-    FrameType: TStrings;
-    FrameSize: TStrings;
+    FrameInfo: TStrings;
 
     FrameData: TBitMap;
 
@@ -405,11 +404,14 @@ begin
   video[id].ReadFrames := Ceil(video[id].FrameRate) * video[id].ReadDuration;
 
   output.Free;
-  {
-  //'ffprobe -i f3_h264_nvenc_s0t-1_1M.mp4 -select_streams v -show_entries frame=pkt_size,pict_type'
-  cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries frame=pkt_size,pict_type -of csv';
-  output := RunDOS(cmd);
-  }
+
+  caption := 'ffprobe frames';
+  cmd := 'ffprobe.exe -i ' + filename + ' -select_streams v -show_entries frame=pkt_size,pict_type -of csv';
+  // FIXME, why this ffprobe cannot terminate ??, need to add 3000 timeout.
+  video[id].FrameInfo := RunDOS(cmd, 3000);
+  Form1.Cursor := crDefault;
+  if video[id].FrameNumber <> video[id].FrameInfo.Count then
+    video[id].FrameNumber := video[id].FrameInfo.Count;
 end;
 
 // --------------------------------
@@ -458,6 +460,7 @@ procedure TForm1.ShowInformation;
 var
   id : Integer;
   info : string;
+  str : TStrings;
 begin
    info := '';
    for id:= 1 to picture_number do
@@ -472,6 +475,11 @@ begin
      begin
        info := info + '@' + FloatToStr(video[id].FrameRate) + 'fps';
        info := info + '@' + video[id].BitRate + 'bps';
+       str := TStringList.Create;
+       str.CommaText := video[id].FrameInfo[video[id].FrameIndex-1];
+       str.Delimiter := ',';
+       info := info + ' (' + str[2] + ') ' + str[1];
+       str.Free;
      end;
      info := info + ' , ' + video[id].FileSizeFormat;
    end;
