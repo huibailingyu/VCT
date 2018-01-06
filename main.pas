@@ -629,7 +629,7 @@ end;
 function TForm1.LoadPicture(inx1, inx2, reset: integer): Boolean;
 var
   pos, fid, inx : array[1..2] of Integer;
-  id, counter, y, filesize : integer;
+  id, counter, y, filesize, outtime_counter : integer;
   filename : array[1..2] of string;
   param : string;
   ThreadHandle: THandle;
@@ -696,8 +696,9 @@ begin
     end;
   end;
 
+  outtime_counter := 50;
   counter := 0;
-  while (counter < 50) AND (wait_do[1] OR wait_do[2]) do
+  while (counter < outtime_counter) AND (wait_do[1] OR wait_do[2]) do
   begin
     if (wait_do[1]) AND FileReady(filename[1], FrameSize[1]) then
       wait_do[1] := False;
@@ -710,9 +711,11 @@ begin
     end;
   end;
 
-  if (counter >= 50) AND (wait_do[1] OR wait_do[2]) then
+  if (counter >= outtime_counter) AND (wait_do[1] OR wait_do[2]) then
   begin
     ShowMessage('Decoding out of time!');
+    if ThreadHandle <> 0 then
+      closehandle(ThreadHandle);
     exit;
   end;
 
