@@ -460,10 +460,8 @@ var
   info : string;
 begin
    info := '';
-   for id:= 1 to 2 do
+   for id:= 1 to picture_number do
    begin
-     if (picture_number AND id) = 0 then
-       continue;
      if id = 2 then
        info := info + ' || ';
      info := info + IntToStr(video[id].FrameIndex) + ' / ' + IntToStr(video[id].FrameNumber);
@@ -494,7 +492,7 @@ begin
   begin
     Form1.Canvas.StretchDraw(Rect(show_sx, show_sy, show_ex, show_ey), video[1].FrameData);
   end
-  else if picture_number = 3 then
+  else if picture_number = 2 then
   begin
 
     scale_x := video[1].FrameData.Width / show_w;
@@ -850,13 +848,13 @@ begin
 
   Caption := 'Waiting...';
   id := 1;
-  picture_number := picture_number or id;
+  picture_number := id;
   OpenPicture(Files[0], id);
   if Files.Count > 1 then
   begin
     id := 2;
     OpenPicture(Files[1], id);
-    picture_number := picture_number or id;
+    picture_number := id;
   end;
 
   ShowInformation;
@@ -874,7 +872,7 @@ begin
     if Form1.WindowState <> wsMaximized then
       Form1.WindowState := wsMaximized;
     Caption := 'Waiting...';
-    picture_number := picture_number or id;
+    picture_number := id;
     if id = 1 then
     begin
       OpenPicture(OpenDialog1.Files[0], id);
@@ -882,7 +880,7 @@ begin
       begin
         id := 2;
         OpenPicture(OpenDialog1.Files[1], id);
-        picture_number := picture_number or id;
+        picture_number := id;
       end;
     end
     else
@@ -998,7 +996,8 @@ end;
 procedure TForm1.FormMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  mouse_down := 1;
+  if (picture_number > 1) then
+    mouse_down := 1;
 end;
 
 procedure TForm1.FormMouseUp(Sender: TObject; Button: TMouseButton;
