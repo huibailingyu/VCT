@@ -507,10 +507,10 @@ begin
                          video[2].FrameData.Canvas,
                          Rect(pos, 0, video[2].FrameData.Width, video[2].FrameData.Height));
     Form1.Canvas.StretchDraw(Rect(show_sx, show_sy, show_ex, show_ey), show);
-    if (split1 >= show_sx) and (split1 < show_ex) then
+    if (split1 > show_sx) and (split1 < show_ex) then
     begin
       Form1.Canvas.MoveTo(split1, show_sy);
-      Form1.Canvas.LineTo(split1, show_ey);
+      Form1.Canvas.LineTo(split1, show_ey-1);
     end;
   end;
 end;
