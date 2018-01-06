@@ -112,10 +112,6 @@ type
     show_w: Integer;
     show_h: Integer;
 
-    next_filename: array[1..2] of string;
-    bmp_inx : Integer;
-    bmp: array[1..2, 0..1] of TBitMap;
-    png: array[1..2, 0..1] of TPngImage;
     video : array[1..2] of TVideo;
 
     procedure VideoInit;
@@ -271,7 +267,6 @@ begin
   Timer1.Enabled := False;
   Form1.Canvas.FillRect(Form1.ClientRect);
   picture_number := 0;
-  bmp_inx := 0;
   mouse_down := 0;
 
   show_sx := 0;
@@ -347,8 +342,6 @@ begin
     video[id].FrameNumber := 0;
   end;
 
-  video[id].FrameSize := TStringList.Create;
-  video[id].FrameType := TStringList.Create;
 
   cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,bit_rate,duration';
   output := RunDOS(cmd);
@@ -409,6 +402,7 @@ begin
 
   video[id].ReadFrames := Ceil(video[id].FrameRate) * video[id].ReadDuration;
 
+  output.Free;
   {
   //'ffprobe -i f3_h264_nvenc_s0t-1_1M.mp4 -select_streams v -show_entries frame=pkt_size,pict_type'
   cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries frame=pkt_size,pict_type -of csv';
@@ -471,6 +465,7 @@ begin
      if id = 2 then
        info := info + ' || ';
      info := info + IntToStr(video[id].FrameIndex) + ' / ' + IntToStr(video[id].FrameNumber);
+     info := info + ' , ' + IntToStr(video[id].FileIndex);
      info := info + ' , ' + video[id].FileName;
      info := info + ' , ' + video[id].FrameWidth + 'x' + video[id].FrameHeight;
      if video[id].IsVideo then
@@ -493,7 +488,6 @@ begin
   if (show_w <= 0) OR (show_h <= 0) then
     ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 0);
 
-  //Form1.Canvas.StretchDraw(Rect(show_sx, show_sy, show_ex, show_ey), show);
   if picture_number = 1 then
   begin
     Form1.Canvas.StretchDraw(Rect(show_sx, show_sy, show_ex, show_ey), video[1].FrameData);
@@ -621,16 +615,6 @@ begin
   if show = nil then
     show := Tbitmap.Create;
   VideoInit;
-
-  bmp_inx := 0;
-  bmp[1, 0] := TBitMap.Create;
-  bmp[1, 1] := TBitMap.Create;
-  bmp[2, 0] := TBitMap.Create;
-  bmp[2, 1] := TBitMap.Create;
-  png[1, 0] := TPngImage.Create;
-  png[1, 1] := TPngImage.Create;
-  png[2, 0] := TPngImage.Create;
-  png[2, 1] := TPngImage.Create;
 
   DragAcceptFiles(Handle, True);
   ResetForm(0);
@@ -1102,14 +1086,6 @@ end;
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
   show.Free;
-  bmp[1, 0].Free;
-  bmp[1, 1].Free;
-  bmp[2, 0].Free;
-  bmp[2, 1].Free;
-  png[1, 0].Free;
-  png[1, 1].Free;
-  png[2, 0].Free;
-  png[2, 1].Free;
   if DirectoryExists(outfolder) then
     DeleteDirectory(outfolder);
 end;
@@ -1121,8 +1097,8 @@ begin
     ShowInformation;
     ShowPicture;
   end
-  else
-    Timer1.Enabled := False;
+  //else
+   // Timer1.Enabled := False;
 end;
 
 procedure TForm1.FormDblClick(Sender: TObject);
