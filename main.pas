@@ -59,6 +59,11 @@ type
     SavePictureDialog1: TSavePictureDialog;
     SaveFrame21: TMenuItem;
     SaveFrm1Frm21: TMenuItem;
+    N5: TMenuItem;
+    Frame21: TMenuItem;
+    Frame22: TMenuItem;
+    Frame11: TMenuItem;
+    Frame12: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -79,6 +84,8 @@ type
     procedure FormDblClick(Sender: TObject);
     procedure FormPaint(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure Frame21Click(Sender: TObject);
+    procedure Frame12Click(Sender: TObject);
   private
     { Private declarations }
     extension : String;
@@ -951,6 +958,34 @@ begin
       files.Add(ParamStr(i));
     InputFiles(files);
     files.free;
+  end;
+end;
+
+procedure TForm1.Frame12Click(Sender: TObject);
+var
+  opened : Boolean;
+begin
+  opened := False;
+  if picture_number > 1 then
+    opened := LoadPicture(video[1].FrameIndex + (Sender as TMenuItem).Tag, video[2].FrameIndex, 0);
+  if opened then
+  begin
+    ShowInformation;
+    ShowPicture;
+  end;
+end;
+
+procedure TForm1.Frame21Click(Sender: TObject);
+var
+  opened : Boolean;
+begin
+  opened := False;
+  if picture_number > 1 then
+    opened := LoadPicture(video[1].FrameIndex, video[2].FrameIndex + (Sender as TMenuItem).Tag, 0);
+  if opened then
+  begin
+    ShowInformation;
+    ShowPicture;
   end;
 end;
 

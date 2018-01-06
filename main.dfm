@@ -75,6 +75,29 @@ object Form1: TForm1
     object N3: TMenuItem
       Caption = '-'
     end
+    object Frame12: TMenuItem
+      Tag = -1
+      Caption = 'Frame1 --'
+      OnClick = Frame12Click
+    end
+    object Frame11: TMenuItem
+      Tag = 1
+      Caption = 'Frame1 ++'
+      OnClick = Frame12Click
+    end
+    object Frame21: TMenuItem
+      Tag = -1
+      Caption = 'Frame2 --'
+      OnClick = Frame21Click
+    end
+    object Frame22: TMenuItem
+      Tag = 1
+      Caption = 'Frame2 ++'
+      OnClick = Frame21Click
+    end
+    object N5: TMenuItem
+      Caption = '-'
+    end
     object Exit1: TMenuItem
       Caption = 'Exit'
       OnClick = Exit1Click
@@ -93,7 +116,7 @@ object Form1: TForm1
   end
   object Timer1: TTimer
     Enabled = False
-    Interval = 10
+    Interval = 20
     OnTimer = Timer1Timer
     Left = 144
     Top = 24
