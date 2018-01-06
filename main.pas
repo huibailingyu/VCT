@@ -42,6 +42,15 @@ type
     ReadStartIndex: Integer;
   end;
 
+  TRGBTriple = packed record
+    rgbtBlue: Byte;
+    rgbtGreen: Byte;
+    rgbtRed: Byte;
+  end;
+
+  PRGBTripleArray = ^TRGBTripleArray;
+  TRGBTripleArray = array[0..4095] of TRGBTriple;
+
   TForm1 = class(TForm)
     PopupMenu1: TPopupMenu;
     OpenFile11: TMenuItem;
@@ -112,7 +121,7 @@ type
     procedure VideoInit;
     procedure VideoSetParameters(id : integer; filename: String);
 
-    function CalculatePSNR: String;
+    function psnr(bmp1, bmp2: TBitMap): string;
     procedure ShowInformation;
     procedure InputFiles(Files: Tstrings);
     function OpenPicture(input_filename: String; id: Integer): Boolean;
@@ -286,12 +295,13 @@ begin
     if video[id].FrameData <> nil then
       video[id].FrameData.free;
     video[id].FrameData := TBitmap.create;
-    video[id].ReadDuration := 1;
+    video[id].ReadDuration := 2;
     video[id].ReadFrames := 0;
     video[id].ReadFrameMax := 0;
     video[id].ReadStartTime := 0;
     video[id].ReadStartIndex := 1;
-    next_filename[id] := '';
+    video[id].FileIndex := -1;
+    video[id].FileStream := nil;
   end;
 end;
 
@@ -407,35 +417,45 @@ begin
 end;
 
 // --------------------------------
-function TForm1.CalculatePSNR: String;
+function TForm1.psnr(bmp1, bmp2: TBitMap): string;
 var
-  cmd, str1, str2 : string;
-  output : TStrings;
-  i, inx, inx1 : Integer;
+  x, y, i : Integer;
+  y1, y2: Integer;
+  mse : Real;
+  r, g, b : Real;
+  Pixels1: PRGBTripleArray;
+  Pixels2: PRGBTripleArray;
 begin
-  str1 := video[1].FileNamePrefix + IntToStr(video[1].FrameIndex) + extension;
-  str2 := video[2].FileNamePrefix + IntToStr(video[2].FrameIndex) + extension;
-  if FileExists(str1) AND FileExists(str2) then
+  r := 0.257;
+  g := 0.504;
+  b := 0.098;
+
+  if (bmp1.Width = bmp2.Width) AND (bmp1.Height = bmp2.Height) then
   begin
-    cmd := 'ffmpeg -i ' + str1 + ' -i ' + str2 + ' -filter_complex psnr -f null -';
-    output := RunDOS(cmd);
-    for i:=output.Count-1 downto 1 do
+    mse := 0;
+    for y := 0 to bmp1.Height - 1 do
     begin
-      if Pos('average:', output.Strings[i]) > 0 then
+      Pixels1 := bmp1.ScanLine[y];
+      Pixels2 := bmp2.ScanLine[y];
+      for x := 0 to bmp1.Width - 1 do
       begin
-        inx := Pos('PSNR', output.Strings[i]);
-        if inx <= 0 then
-          inx := 1;
-        inx1 := Pos('min:', output.Strings[i]);
-        if inx1 < inx then
-          inx1 := length(output.Strings[i]);
-        Result := Copy(output.Strings[i], inx, inx1 - inx - 1);
-        break;
+        y1 := Round(r*Pixels1[x].rgbtRed + g*Pixels1[x].rgbtGreen + b*Pixels1[x].rgbtBlue + 0.5);
+        y2 := Round(r*Pixels2[x].rgbtRed + g*Pixels2[x].rgbtGreen + b*Pixels2[x].rgbtBlue + 0.5);
+        mse := mse + (y1-y2)*(y1-y2);
       end;
     end;
+    mse := mse / (bmp1.Width * bmp1.Height);
+
+    if mse > 0.0 then
+    begin
+      mse := 10*log10(255*255/mse);
+      Result := 'PSNR Y: ' + FloatToStr(RoundTo(mse, -2))
+    end
+    else
+      Result := 'Same';
   end
   else
-    Result := '';
+    Result := 'Image Size not same';
 end;
 
 procedure TForm1.ShowInformation;
@@ -462,7 +482,7 @@ begin
    end;
 
    if (ShowInformation1.Checked) AND (picture_number > 1) AND (Timer1.Enabled = False) Then
-     info := info + ' || ' + CalculatePSNR;
+     info := info + ' || ' + psnr(video[1].FrameData, video[2].FrameData);
   caption := info;
 end;
 
