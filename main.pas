@@ -217,8 +217,6 @@ begin
                      ProceInfo);
 
   CheckResult(b);
-  if timeout < 0 then
-     timeout := INFINITE;
   if WAIT_TIMEOUT = WaitForSingleObject(ProceInfo.hProcess, timeout) then;
     TerminateThread(ProceInfo.hProcess, 0);
 
@@ -348,7 +346,7 @@ begin
   Form1.Cursor := crHourGlass;
   caption := 'ffprobe stream';
   cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,bit_rate,duration';
-  output := RunDOS(cmd, -1);
+  output := RunDOS(cmd, INFINITE);
 
   video[id].CodecName := output.Values['codec_name'];
   video[id].PixFormat := output.Values['pix_fmt'];
@@ -675,7 +673,7 @@ begin
           if True OR (video[id].FileIndex < 0) then
           begin
             Form1.Cursor := crHourGlass;
-            RunDos(param, -1);
+            RunDos(param, INFINITE);
             Form1.Cursor := crDefault;
           end
           else
@@ -781,7 +779,7 @@ begin
       begin
         filename := outfolder + 'h264_' + IntToStr(id) + '.mp4';
         cmd := 'ffmpeg.exe -i ' + video[id].FullFileName + ' -vcodec copy -an -y ' + filename;
-        RunDOS(cmd, -1);
+        RunDOS(cmd, INFINITE);
         video[id].FileName := ExtractFileName(video[id].FullFileName);
         VideoSetParameters(id, filename);
       end
@@ -789,7 +787,7 @@ begin
       begin
         filename := outfolder + 'flv_' + IntToStr(id) + '.mp4';
         cmd := 'ffmpeg.exe -i ' + video[id].FullFileName + ' -vcodec copy -an -y ' + filename;
-        RunDOS(cmd, -1);
+        RunDOS(cmd, INFINITE);
         video[id].FullFileName := filename;
       end;
 
