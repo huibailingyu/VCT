@@ -8,12 +8,6 @@ uses
   ComCtrls, Math, Jpeg, IdGlobalProtocols, inifiles;
 
 type
-  TLoadingThread = class(TThread)
-  protected
-    procedure Execute; override;
-  end;
-
-type
   TVideo = record
     IsVideo: Boolean;
     FullFileName: String;
@@ -23,6 +17,8 @@ type
     FileSize: Integer;
     FileSizeFormat: String;
 
+    FileIndex: Integer;
+    FileStream: TFileStream;
     FrameIndex: Integer;
 
     FrameNumber: Integer;
@@ -113,7 +109,8 @@ type
     procedure ShowInformation;
     procedure InputFiles(Files: Tstrings);
     function OpenPicture(input_filename: String; id: Integer): Boolean;
-    function LoadPicture(inx1, inx2: integer): Boolean;
+    function FileReady(filename:String; filesize: int64): Boolean;
+    function LoadPicture(inx1, inx2, reset: integer): Boolean;
     procedure ShowPicture;
     procedure ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
     procedure ResetForm(input: Integer);
@@ -136,44 +133,6 @@ var
 implementation
 
 {$R *.dfm}
-procedure LoadingCopyPicture;
-var
-  scale_x : Real;
-  pos : Integer;
-begin
-  with Form1 do
-  begin
-    if extension = '.png' then
-    begin
-      png[1, 1 - bmp_inx].LoadFromFile(next_filename[1]);
-      if picture_number = 3 then
-        png[2, 1 - bmp_inx].LoadFromFile(next_filename[2]);
-    end
-    else
-    begin
-      bmp[1, 1 - bmp_inx].LoadFromFile(next_filename[1]);
-      if picture_number = 3 then
-        bmp[2, 1 - bmp_inx].LoadFromFile(next_filename[2]);
-    end;
-
-      if picture_number = 3 then
-      begin
-        scale_x := video[1].FrameData.Width / show_w;
-        pos := Round(scale_x * (Split1 - show_sx));
-        show.Canvas.CopyRect(Rect(0, 0, pos, video[1].FrameData.Height),
-                             video[1].FrameData.Canvas,
-                             Rect(0, 0, pos, video[1].FrameData.Height));
-        show.Canvas.CopyRect(Rect(pos, 0, video[2].FrameData.Width, video[2].FrameData.Height),
-                             video[2].FrameData.Canvas,
-                             Rect(pos, 0, video[2].FrameData.Width, video[2].FrameData.Height));
-      end
-      else
-      begin
-        show.Assign(video[1].FrameData);
-      end;
-  end;
-end;
-
 procedure TForm1.WMDROPFILES(var Msg: TMessage);
 var
   n : Integer;
@@ -650,130 +609,143 @@ begin
   ResetForm(0);
 end;
 
-procedure TLoadingThread.Execute;
+function TForm1.FileReady(filename:String; filesize: int64): Boolean;
 begin
-  // release thread after processing
-  FreeOnTerminate := True;
-  //LoadingCopyPicture;
-  with Form1 do
+  Result := False;
+  if FileExists(filename) then
   begin
-    if extension = '.png' then
-    begin
-      png[1, 1 - bmp_inx].LoadFromFile(next_filename[1]);
-      if picture_number = 3 then
-        png[2, 1 - bmp_inx].LoadFromFile(next_filename[2]);
-    end
-    else
-    begin
-      bmp[1, 1 - bmp_inx].LoadFromFile(next_filename[1]);
-      if picture_number = 3 then
-        bmp[2, 1 - bmp_inx].LoadFromFile(next_filename[2]);
-    end;
+    if FileSizeByName(filename) >= filesize  then
+       Result := True;
   end;
 end;
 
-function TForm1.LoadPicture(inx1, inx2: integer): Boolean;
+function TForm1.LoadPicture(inx1, inx2, reset: integer): Boolean;
 var
-  filename, param : String;
-  id : Integer;
-  inx : array[1..2] of Integer;
-  counter : Integer;
+  pos, fid, inx : array[1..2] of Integer;
+  id, counter, y, filesize : integer;
+  filename : array[1..2] of string;
+  param : string;
   ThreadHandle: THandle;
   TheThread : Dword;
-  label
-  need_encode;
+  FrameWidth, FrameHeight, FrameRate, FrameSize: array[1..2] of Integer;
+  scanLine: PChar;
+  f: TFormatSettings;
+  continue_do, ret, wait_do : array[1..2] of Boolean;
 begin
   Result := False;
   inx[1] := inx1;
   inx[2] := inx2;
+  GetLocaleFormatSettings(LOCALE_SYSTEM_DEFAULT, f);
   for id:=1 to 2 do
   begin
+    continue_do[id] := False;
+    wait_do[id] := False;
     if video[id].FrameNumber <=1 then
       continue;
     if inx[id] <> video[id].FrameIndex then
     begin
-      if (inx[id] > 0) and (inx[id] <= video[id].FrameNumber) then
+      if (inx[id] > 0) and (inx[id] < video[id].FrameNumber) then
       begin
+        continue_do[id] := True;
         video[id].FrameIndex := inx[id];
-need_encode:
-        while video[id].FrameIndex >= video[id].ReadFrameMax - 10 do
+        FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
+        fid[id] := video[id].FrameIndex div FrameRate[id];
+        filename[id] := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id]) + extension;
+        if Not FileExists(filename[id]) then
         begin
-          param := 'ffmpeg.exe -ss ' + IntToStr(video[id].ReadStartTime) +
+          param := 'ffmpeg.exe -ss ' + IntToStr(fid[id]*video[id].ReadDuration) +
                    ' -i ' + video[id].FullFileName +
                    ' -t ' + IntToStr(video[id].ReadDuration) +
-                   ' -f image2 -start_number ' + IntToStr(video[id].ReadStartIndex) +
-                   ' -y ' + video[id].FileNamePrefix + '%d' + extension;
-          Caption := 'Waiting...' + param;
-
-          try
-            ThreadHandle := createthread(nil, 0, @RunFFMPEG, PChar(param), 0, TheThread);
-          finally
-            if ThreadHandle <> 0 then
-              closehandle(ThreadHandle);
-          end;
-
-          video[id].ReadStartTime := video[id].ReadStartTime + video[id].ReadDuration;
-          video[id].ReadStartIndex := video[id].ReadStartIndex + video[id].ReadFrames;
-          video[id].ReadFrameMax := video[id].ReadFrameMax + video[id].ReadFrames;
-          if video[id].ReadFrameMax > video[id].FrameNumber then
-             video[id].ReadFrameMax := video[id].FrameNumber;
-        end;
-
-        filename := video[id].FileNamePrefix + IntToStr(video[id].FrameIndex) + extension;
-        counter := 0;
-        while (counter < 20) AND (not FileExists(filename)) do
-        begin
-          sleep(100);
-          counter := counter + 1;
-        end;
-
-        if FileExists(filename) then
-        begin
-          try
-            if Pos('.png', extension) > 0 then
-            begin
-              if video[id].FrameIndex = 1 then
-                 png[id, bmp_inx].LoadFromFile(filename);
-              video[id].FrameData.Assign(png[id, bmp_inx]);
-              Form1.next_filename[id] := video[id].FileNamePrefix + IntToStr(video[id].FrameIndex + 1) + extension;
-              if FileExists(filename) then
-              begin
-                //TLoadingThread.Create(False);
-                png[id, 1-bmp_inx].LoadFromFile(Form1.next_filename[id]);
-              end;
-              bmp_inx := 1- bmp_inx;
-            end
-            else
-            begin
-              if video[id].FrameIndex = 1 then
-                 bmp[id, bmp_inx].LoadFromFile(filename);
-              video[id].FrameData.Assign(bmp[id, bmp_inx]);
-              Form1.next_filename[id] := video[id].FileNamePrefix + IntToStr(video[id].FrameIndex + 1) + extension;
-              if FileExists(Form1.next_filename[id]) then
-              begin
-                if ((picture_number = 1) and (id = 1)) OR ((picture_number = 3) and (id = 2)) then
-                  TLoadingThread.Create(False);
-              end;
-              bmp_inx := 1- bmp_inx;
-            end;
-            Result := True;
-          except
-            Result := False;
-          end;
-        end
-        else  // not exist
-        begin
-          if (video[id].FrameIndex < video[id].ReadFrameMax) AND
-             (video[id].ReadFrameMax < video[id].FrameNumber) then
+                   ' -f rawvideo -pix_fmt bgr24 -y ' + filename[id];
+          if True OR (video[id].FileIndex < 0) then
           begin
-            video[id].ReadFrameMax := video[id].FrameIndex;
-            video[id].ReadStartIndex := video[id].FrameIndex;
-            goto need_encode;
+            Form1.Cursor := crHourGlass;
+            RunDos(param);
+            Form1.Cursor := crDefault;
           end
+          else
+          begin
+            try
+              ThreadHandle := createthread(nil, 0, @RunFFMPEG, PChar(param), 0, TheThread);
+            finally
+              if ThreadHandle <> 0 then
+                closehandle(ThreadHandle);
+               //sleep(50);
+            end;
+          end;
         end;
+
+        FrameWidth[id] := StrToInt(video[id].FrameWidth);
+        FrameHeight[id] := StrToInt(video[id].FrameHeight);
+        FrameSize[id] := FrameWidth[id] * FrameHeight[id] * 3;
+        pos[id] := video[id].FrameIndex - fid[id] * FrameRate[id];
+        Pos[id] := pos[id] * FrameSize[id];
+        if (video[id].FileStream <> nil) AND (fid[id] <> video[id].FileIndex) then
+            video[id].FileStream.Free;
+
+        wait_do[id] := True;
+
       end;
     end;
   end;
+
+  counter := 0;
+  while (counter < 50) AND (wait_do[1] OR wait_do[2]) do
+  begin
+    if (wait_do[1]) AND FileReady(filename[1], FrameSize[1]) then
+      wait_do[1] := False;
+    if (wait_do[2]) AND FileReady(filename[2], FrameSize[2]) then
+      wait_do[2] := False;
+    if wait_do[1] or wait_do[2] then
+    begin
+      sleep(100);
+      counter := counter + 1;
+    end;
+  end;
+
+  if (counter >= 50) AND (wait_do[1] OR wait_do[2]) then
+  begin
+    ShowMessage('Decoding out of time!');
+    exit;
+  end;
+
+  for id:=1 to 2 do
+  begin
+    ret[id] := False;
+    if continue_do[id] then
+    begin
+      if (video[id].FileStream = nil) OR (fid[id] <> video[id].FileIndex) then
+      begin
+        try
+          video[id].FileStream := TFileStream.Create(filename[id], fmOpenRead + fmShareDenyNone);
+        except
+          Caption := 'Decoding Error';
+          video[id].FileStream := nil;
+        end;
+      end;
+
+      if (video[id].FileStream <> nil) AND (video[id].FileStream.Size > pos[id]) then
+      begin
+        if video[id].FrameData = nil then
+          video[id].FrameData := TBitMap.Create;
+
+        video[id].FrameData.Width := FrameWidth[id];
+        video[id].FrameData.Height := FrameHeight[id];
+        video[id].FrameData.PixelFormat := pf24bit;
+        video[id].FileIndex := fid[id];
+
+        video[id].FileStream.Position := pos[id];
+        for y:=0 to FrameHeight[id]-1 do
+        begin
+          scanLine := video[id].FrameData.ScanLine[y];
+          video[id].FileStream.Read(scanLine[0], FrameWidth[id]*3);
+        end;
+        ret[id] := True;
+      end;
+    end;
+  end;
+
+  Result := (continue_do[1] = ret[1]) AND (continue_do[2] = ret[2]);
 end;
 
 function TForm1.OpenPicture(input_filename: String; id: Integer): Boolean;
@@ -808,10 +780,10 @@ begin
 
       if id = 1 then
       begin
-        LoadPicture(1, video[2].FrameIndex);
+        LoadPicture(1, video[2].FrameIndex, 1);
       end
       else if id = 2 then
-        LoadPicture(video[1].FrameIndex, video[1].FrameIndex)
+        LoadPicture(video[1].FrameIndex, video[1].FrameIndex, 1)
     end
     else if Pos('.png', FileExt) > 0 then
     begin
@@ -925,7 +897,7 @@ begin
   except
     Vinx := video[1].FrameIndex;
   end;
-  if LoadPicture(Vinx, Vinx) then
+  if LoadPicture(Vinx, Vinx, 1) then
   begin
     ShowInformation;
     ShowPicture;
@@ -1032,15 +1004,15 @@ begin
   case Key of
     VK_LEFT:
     begin
-      opened := LoadPicture(video[1].FrameIndex - 1, video[2].FrameIndex - 1);
+      opened := LoadPicture(video[1].FrameIndex - 1, video[2].FrameIndex - 1, 0);
     end;
     VK_RIGHT:
     begin
-      opened := LoadPicture(video[1].FrameIndex + 1, video[2].FrameIndex + 1);
+      opened := LoadPicture(video[1].FrameIndex + 1, video[2].FrameIndex + 1, 0);
     end;
     VK_UP:
     begin
-      opened := LoadPicture(1, 1);
+      opened := LoadPicture(1, 1, 1);
     end;
     VK_DOWN:
     begin
@@ -1089,7 +1061,7 @@ end;
 
 procedure TForm1.Timer1Timer(Sender: TObject);
 begin
-  if LoadPicture(video[1].FrameIndex + 1, video[2].FrameIndex + 1) then
+  if LoadPicture(video[1].FrameIndex + 1, video[2].FrameIndex + 1, 0) then
   begin
     ShowInformation;
     ShowPicture;
