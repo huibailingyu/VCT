@@ -68,6 +68,7 @@ type
     Frame22: TMenuItem;
     Frame11: TMenuItem;
     Frame12: TMenuItem;
+    ShowFrameInfo1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -417,13 +418,18 @@ begin
   end;
   output.Free;
 
-  caption := 'ffprobe frames';
-  cmd := 'ffprobe.exe -i ' + filename + ' -select_streams v -show_entries frame=pkt_size,pict_type -of csv';
-  // FIXME, why this ffprobe cannot terminate ??, need to add 3000 timeout.
-  video[id].FrameInfo := RunDOS(cmd, 3000);
-  Form1.Cursor := crDefault;
-  if video[id].FrameNumber <> video[id].FrameInfo.Count then
-    video[id].FrameNumber := video[id].FrameInfo.Count;
+  if ShowFrameInfo1.Checked then
+  begin
+    caption := 'ffprobe frames';
+    cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries frame=pkt_size,pict_type -of csv';
+    // FIXME, why this ffprobe cannot terminate ??, need to add 3000 timeout.
+    video[id].FrameInfo := RunDOS(cmd, 3000);
+    Form1.Cursor := crDefault;
+    if video[id].FrameNumber <> video[id].FrameInfo.Count then
+      video[id].FrameNumber := video[id].FrameInfo.Count;
+  end
+  else
+    video[id].FrameInfo := nil;
 end;
 
 // --------------------------------
@@ -487,11 +493,14 @@ begin
      begin
        info := info + '@' + FloatToStr(video[id].FrameRate) + 'fps';
        info := info + '@' + video[id].BitRate + 'bps';
-       str := TStringList.Create;
-       str.CommaText := video[id].FrameInfo[video[id].FrameIndex-1];
-       str.Delimiter := ',';
-       info := info + ' (' + str[2] + ') ' + str[1];
-       str.Free;
+       if video[id].FrameInfo <> nil then
+       begin
+         str := TStringList.Create;
+         str.CommaText := video[id].FrameInfo[video[id].FrameIndex-1];
+         str.Delimiter := ',';
+         info := info + ' (' + str[2] + ') ' + str[1];
+         str.Free;
+       end;
      end;
      info := info + ' , ' + video[id].FileSizeFormat;
    end;

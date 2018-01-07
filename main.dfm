@@ -42,6 +42,9 @@ object Form1: TForm1
     object N1: TMenuItem
       Caption = '-'
     end
+    object ShowFrameInfo1: TMenuItem
+      Caption = 'Show Frame Info'
+    end
     object ShowInformation1: TMenuItem
       Caption = 'Show PSNR'
       Checked = True
