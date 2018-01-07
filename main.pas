@@ -105,6 +105,7 @@ type
     show_h: Integer;
 
     video : array[1..2] of TVideo;
+    log_file: TStrings;
 
     procedure VideoInit;
     procedure VideoSetParameters(id : integer; filename: String);
@@ -122,7 +123,7 @@ type
     function DeleteDirectory(NowPath: string): Boolean;
     procedure CheckResult(b: Boolean);
     function RunDOS(const CommandLine: string; timeout: DWORD): TStrings;
-
+    procedure writelog(handle: Integer; command: string);
  protected
     procedure WMDROPFILES(var Msg : TMessage); message WM_DROPFILES;
 
@@ -160,6 +161,24 @@ function RunFFMPEG(param: String): Integer; stdcall;
 begin
   WinExec(PAnsiChar(AnsiString(param)), SW_HIDE);
   Result := 0;
+end;
+
+procedure TForm1.writelog(handle: Integer; command: string);
+var
+  currentTime: TSystemTime;
+  year, month, day, hour, minute, second, millisecond: string;
+  datetime: string;
+begin
+  if log_file = nil then
+     log_file := TStringList.Create;
+
+  GetSystemTime(currentTime);
+  year:= IntToStr(currentTime.wYear);
+  datetime:= Format('%4d/%d/%d %2d:%2d:%2d:%3d', [currentTime.wYear, currentTime.wMonth, currentTime.wDay,
+                                                  currentTime.wHour, currentTime.wMinute, currentTime.wSecond,
+                                                  currentTime.wMilliseconds]);
+  log_file.Add(datetime + ' : P' + IntToStr(handle) + '  ' + command);
+  log_file.SaveToFile('e:\log.file');
 end;
 
 procedure TForm1.CheckResult(b: Boolean);
@@ -208,9 +227,16 @@ begin
                      StartInfo,
                      ProceInfo);
 
+  writelog(ProceInfo.hProcess, 'RunDOS: ' + CommandLine);
+
   CheckResult(b);
-  if WAIT_TIMEOUT = WaitForSingleObject(ProceInfo.hProcess, timeout) then;
+  if WAIT_TIMEOUT = WaitForSingleObject(ProceInfo.hProcess, timeout) then
+  begin
     TerminateThread(ProceInfo.hProcess, 0);
+    writelog(ProceInfo.hProcess, 'Timeout ' + IntToStr(timeout));
+  end
+  else
+    writelog(ProceInfo.hProcess, 'Terminate');
 
   inS := THandleStream.Create(HRead);
   if inS.Size > 0 then
@@ -611,6 +637,7 @@ begin
   if show = nil then
     show := Tbitmap.Create;
   VideoInit;
+  log_file := nil;
 
   DragAcceptFiles(Handle, True);
   ResetForm(0);
