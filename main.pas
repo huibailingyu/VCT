@@ -290,10 +290,6 @@ begin
   mouse_down := 0;
 
   show_rect := Rect(0, 0, 0, 0);
-  //show_sx := 0;
-  //show_sy := 0;
-  //show_ex := 0;
-  //show_ey := 0;
   show_w := 0;
   show_h := 0;
 
@@ -1112,6 +1108,12 @@ begin
     end;
   end;
 
+  if Timer1.Enabled AND ((Key <> VK_DOWN) AND (Key <> VK_SPACE))then
+  begin
+    Timer1.Enabled := False;
+    Timer1.Interval := 30;
+  end;
+
   if opened then
   begin
     ShowInformation;
@@ -1130,11 +1132,16 @@ procedure TForm1.Timer1Timer(Sender: TObject);
 begin
   if LoadPicture(video[1].FrameIndex + 1, video[2].FrameIndex + 1, 0) then
   begin
+    if Timer1.Interval > 30 then
+       Timer1.Interval := 30;
     ShowInformation;
     ShowPicture;
   end
-  //else
-   // Timer1.Enabled := False;
+  else
+  begin
+    Timer1.Interval := 1000;
+    //Timer1.Enabled := False;
+  end;
 end;
 
 procedure TForm1.FormDblClick(Sender: TObject);
