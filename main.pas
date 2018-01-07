@@ -725,13 +725,8 @@ var
    next_filename : string;
    id: Integer;
    ThreadHandle: array[1..2] of THandle;
-   continue_do : Boolean;
 begin
   Result := False;
-  ThreadHandle[1] := 0;
-  ThreadHandle[2] := 0;
-  continue_do := True;
-  next_filename := '';
   inx[1] := inx1;
   inx[2] := inx2;
   for id:=1 to picture_number do
@@ -754,35 +749,39 @@ begin
         begin
           next_filename := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id] + 1) + extension;
           if Not FileExists(next_filename) then
-            ThreadHandle[id] := CallFFmpegDecode(id, fid[id] + 1, next_filename)
-          else
-            next_filename := '';
+            ThreadHandle[id] := CallFFmpegDecode(id, fid[id] + 1, next_filename);
         end;
       end;
-      continue_do := True;
+      Result := True;
     end;
   end;
 
-  if Not continue_do then
+  if Not Result then
      exit;
 
   // waiting
+  {
   Form1.Cursor := crHourGlass;
-  if PrevThreadHandle[1] <> 0 then
+  if (PrevThreadHandle[1] <> 0) then
   begin
     writelog(PrevThreadHandle[1], 'wait start... ');
     WaitForSingleObject(PrevThreadHandle[1], 5000);
     writelog(PrevThreadHandle[1], 'wait end... ');
-    PrevThreadHandle[1] := ThreadHandle[1];
   end;
-  if PrevThreadHandle[2] <> 0 then
+  PrevThreadHandle[1] := ThreadHandle[1];
+
+  if (picture_number > 1) then
   begin
-    writelog(PrevThreadHandle[2], 'wait start... ');
-    WaitForSingleObject(PrevThreadHandle[2], 5000);
-    writelog(PrevThreadHandle[2], 'wait end... ');
+    if (PrevThreadHandle[2] <> 0) then
+    begin
+      writelog(PrevThreadHandle[2], 'wait start... ');
+      WaitForSingleObject(PrevThreadHandle[2], 5000);
+      writelog(PrevThreadHandle[2], 'wait end... ');
+    end;
     PrevThreadHandle[2] := ThreadHandle[2];
   end;
   Form1.Cursor := crDefault;
+   }
 
   // load filestrean
   Result := True;
