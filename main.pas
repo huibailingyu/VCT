@@ -849,12 +849,10 @@ begin
         video[id].FullFileName := filename;
       end;
 
-      if id = 1 then
-      begin
-        LoadPicture(1, video[2].FrameIndex, 1);
-      end
-      else if id = 2 then
-        LoadPicture(video[1].FrameIndex, video[1].FrameIndex, 1)
+      if (picture_number = 1) and (id = 1) then
+        LoadPicture(1, video[2].FrameIndex, 1)
+      else if (picture_number = 2) and (id = 2) then
+        LoadPicture(1, 1, 1)
     end
     else if Pos('.png', FileExt) > 0 then
     begin
@@ -881,20 +879,20 @@ begin
       video[id].FrameNumber := 1;
     end;
 
-    if id = 1 then
+    if (picture_number = id) then
     begin
       ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 0);
       OpenFile21.Enabled := True;
     end;
 
     Result := True;
-    if id = 2 then
+    if (picture_number = 2) and (id = 2) then
     begin
       if (video[2].FrameData.Width <> video[1].FrameData.Width) OR (video[2].FrameData.Height <> video[1].FrameData.Height) then
       begin
         ShowMessage('Two video frame size are not same file 1 is ' + IntToStr(video[1].FrameData.Width) + 'x' + IntToStr(video[1].FrameData.Height) +
                                                     ', file 2 is ' + IntToStr(video[2].FrameData.Width) + 'x' + IntToStr(video[2].FrameData.Height));
-        Result := False;                                            
+        Result := False;
       end;
     end;
 end;
@@ -907,14 +905,17 @@ begin
     exit;
 
   Caption := 'Waiting...';
+  if Files.Count > 1 then
+    picture_number := 2
+  else
+    picture_number := 1;
+
   id := 1;
-  picture_number := id;
   OpenPicture(Files[0], id);
   if Files.Count > 1 then
   begin
     id := 2;
     OpenPicture(Files[1], id);
-    picture_number := id;
   end;
 
   ShowInformation;
@@ -932,7 +933,11 @@ begin
     if Form1.WindowState <> wsMaximized then
       Form1.WindowState := wsMaximized;
     Caption := 'Waiting...';
-    picture_number := id;
+    if OpenDialog1.Files.Count > 1 then
+      picture_number := 2
+    else
+      picture_number := 1;
+
     if id = 1 then
     begin
       OpenPicture(OpenDialog1.Files[0], id);
@@ -940,7 +945,6 @@ begin
       begin
         id := 2;
         OpenPicture(OpenDialog1.Files[1], id);
-        picture_number := id;
       end;
     end
     else
