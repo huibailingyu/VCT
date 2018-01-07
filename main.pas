@@ -171,14 +171,12 @@ end;
 procedure TForm1.writelog(handle: Integer; command: string);
 var
   currentTime: TSystemTime;
-  year, month, day, hour, minute, second, millisecond: string;
   datetime: string;
 begin
   if log_file = nil then
      log_file := TStringList.Create;
 
   GetSystemTime(currentTime);
-  year:= IntToStr(currentTime.wYear);
   datetime:= Format('%4d/%d/%d %2d:%2d:%2d:%3d', [currentTime.wYear, currentTime.wMonth, currentTime.wDay,
                                                   currentTime.wHour, currentTime.wMinute, currentTime.wSecond,
                                                   currentTime.wMilliseconds]);
@@ -205,7 +203,7 @@ begin
   Result.Text := '';
 
   FillChar(sa, sizeof(sa), 0);
-  //设置允许继承，否则在NT和2000下无法取得输出结果
+  // Allow set inheritance, otherwise maybe no output on winodew2000
   sa.nLength := sizeof(sa);
   sa.bInheritHandle := True;
   sa.lpSecurityDescriptor := nil;
@@ -215,7 +213,6 @@ begin
   FillChar(StartInfo, SizeOf(StartInfo), 0);
   StartInfo.cb := SizeOf(StartInfo);
   StartInfo.wShowWindow := SW_HIDE;
-  //使用指定的句柄作为标准输入输出的文件句柄,使用指定的显示方式
   StartInfo.dwFlags := STARTF_USESTDHANDLES or STARTF_USESHOWWINDOW;
   StartInfo.hStdError := HWrite;
   StartInfo.hStdInput := GetStdHandle(STD_INPUT_HANDLE); //HRead;
@@ -252,7 +249,7 @@ begin
   CloseHandle(HWrite);
 end;
 
-// 删除整个目录
+// Remove whole Directory
 function TForm1.DeleteDirectory(NowPath: string): Boolean;
 var
   search: TSearchRec;
@@ -280,7 +277,7 @@ begin
     ret := FindNext(search);
   end;
   findClose(search);
-  //removedir(NowPath); 如果需要删除文件夹则添加
+  //removedir(NowPath);
   result := True;
 end;
 
@@ -435,7 +432,7 @@ end;
 // --------------------------------
 function TForm1.psnr(bmp1, bmp2: TBitMap): string;
 var
-  x, y, i : Integer;
+  x, y : Integer;
   y1, y2: Integer;
   mse : Real;
   r, g, b : Real;
