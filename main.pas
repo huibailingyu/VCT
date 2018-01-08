@@ -548,20 +548,42 @@ end;
 procedure TForm1.ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
 var
   old_w : Integer;
-  sx, sy, ex, ey: Integer;
+  sx, sy, ex, ey, nWidth, nHeight: Integer;
+  alf1, alf2 : Real;
 begin
+  if VideoWidth*VideoHeight <= 0 then
+    exit;
+
   old_w := show_w;
-  sx := (Form1.ClientWidth - VideoWidth) div 2;
+
+  if (Form1.ClientWidth >= VideoWidth) AND (Form1.ClientHeight >= VideoHeight) then
+  begin
+    nWidth := VideoWidth;
+    nHeight := VideoHeight;
+  end
+  else
+  begin
+    nWidth := Form1.ClientWidth;
+    nHeight := Form1.ClientHeight;
+    alf1 := VideoWidth / Form1.ClientWidth;
+    alf2 := VideoHeight / Form1.ClientHeight;
+    if (VideoWidth * Form1.ClientHeight <= VideoHeight * Form1.ClientWidth) then
+      nWidth := round(VideoWidth * Form1.ClientHeight/ VideoHeight)
+    else
+      nHeight := round(VideoHeight * Form1.ClientWidth/ VideoWidth);
+  end;
+
+  sx := (Form1.ClientWidth - nWidth) div 2;
   if sx < 0 then
     sx := 0;
-  ex := sx + video[1].FrameData.Width;
+  ex := sx + nWidth;
   if (ToSource = 0) AND (ex > Form1.ClientWidth) then
     ex := Form1.ClientWidth;
 
-  sy := (Form1.ClientHeight - VideoHeight) div 2;
+  sy := (Form1.ClientHeight - nHeight) div 2;
   if sy < 0 then
     sy := 0;
-  ey := sy + video[1].FrameData.Height;
+  ey := sy + nHeight;
   if (ToSource = 0) AND (ey > Form1.ClientHeight) then
     ey := Form1.ClientHeight;
 
