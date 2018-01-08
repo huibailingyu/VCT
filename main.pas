@@ -19,6 +19,9 @@ type
 
     FileIndex: Integer;
     FileStream: TFileStream;
+    StreamHeaderSize : Integer;
+    FrameHeaderSize : Integer;
+
     FrameIndex: Integer;
 
     FrameNumber: Integer;
@@ -119,7 +122,8 @@ type
     function OpenPicture(input_filename: String; id: Integer): Boolean;
     function FileReady(filename:String; filesize: int64): Boolean;
     function CallFFmpegDecode(id, fid:Integer; output_filename: String): THandle;
-    procedure LoadDBI(id, Width, Height, Pos: integer);
+    function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
+    function LoadDBI(id, Width, Height, Pos: integer): Boolean;
     function LoadPicture(inx1, inx2, reset: integer): Boolean;
     procedure ShowPicture;
     procedure ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
@@ -311,6 +315,8 @@ begin
     video[id].ReadDuration := 2;
     video[id].FileIndex := -1;
     video[id].FileStream := nil;
+    video[id].StreamHeaderSize := 0;
+    video[id].FrameHeaderSize := 0;
   end;
 end;
 
@@ -661,16 +667,67 @@ begin
   end;
 end;
 
+function TForm1.FindAVIHeader(fs : TFileStream; filesize: integer): integer;
+var
+  str, list_type : string;
+  list_len : integer;
+  buf : array [0..3] of byte;
+begin
+  Result := 0;
+  if (fs = nil) OR (fs.size < filesize)  then
+    exit;
+
+  fs.ReadBuffer(buf, 4);
+  list_type := char(buf[0]) + char(buf[1]) + char(buf[2]) + char(buf[3]);
+  if list_type <> 'RIFF' then
+    exit;
+
+  fs.Position := 12;
+  while fs.Position < fs.Size do
+  begin
+    fs.ReadBuffer(buf, 4);
+    list_type := char(buf[0]) + char(buf[1]) + char(buf[2]) + char(buf[3]);
+
+    fs.ReadBuffer(buf, 4);
+    list_len := (buf[3] shl 24) + (buf[2] shl 16) + (buf[1] shl 8) + buf[0];
+    if list_len > fs.Size then
+       break;
+
+    if list_type = 'LIST' then
+    begin
+      fs.ReadBuffer(buf, 4);
+      list_type := char(buf[0]) + char(buf[1]) + char(buf[2]) + char(buf[3]);
+      if list_type = 'movi' then
+      begin
+        Result := fs.position;
+        break;
+      end;
+      list_len := list_len - 4;
+    end;
+    fs.position := fs.position + list_len;
+  end;
+end;
+
 function TForm1.CallFFmpegDecode(id, fid:Integer; output_filename: String): THandle;
 var
   param : string;
   TheThread : Dword;
 begin
   Result := 0;
-  param := 'ffmpeg.exe -ss ' + IntToStr(fid*video[id].ReadDuration) +
-           ' -i ' + video[id].FullFileName +
-           ' -t ' + IntToStr(video[id].ReadDuration) +
-           ' -f rawvideo -pix_fmt bgr24 -y ' + output_filename;
+  if extension = '.avi' then
+  begin
+    param := 'ffmpeg.exe -ss ' + IntToStr(fid*video[id].ReadDuration) +
+             ' -i ' + video[id].FullFileName +
+             ' -t ' + IntToStr(video[id].ReadDuration) +
+             ' -an -pix_fmt bgr24 -c:v rawvideo -y ' + output_filename;
+  end
+  else
+  begin
+    param := 'ffmpeg.exe -ss ' + IntToStr(fid*video[id].ReadDuration) +
+             ' -i ' + video[id].FullFileName +
+             ' -t ' + IntToStr(video[id].ReadDuration) +
+             ' -an -f rawvideo -pix_fmt bgr24 -y ' + output_filename;
+  end;
 
   if False OR (fid = 0) AND (video[id].FileIndex < 0) then
   begin
@@ -694,10 +751,13 @@ begin
   end;
 end;
 
-procedure TForm1.LoadDBI(id, Width, Height, Pos: integer);
+function TForm1.LoadDBI(id, Width, Height, Pos: integer): Boolean;
 var
   y: Integer;
   scanLine: PChar;
+  list_type : string;
+  list_len : integer;
+  buf : array [0..3] of byte;
 begin
   if video[id].FrameData = nil then
     video[id].FrameData := TBitMap.Create;
@@ -709,11 +769,37 @@ begin
     video[id].FrameData.PixelFormat := pf24bit;
   end;
 
-  video[id].FileStream.Position := pos;
-  for y:=0 to Height-1 do
-  begin
-    scanLine := video[id].FrameData.ScanLine[y];
-    video[id].FileStream.Read(scanLine[0], Width*3);
+  try
+    if extension  = '.avi' then
+    begin
+      video[id].FileStream.Position := video[id].StreamHeaderSize + pos;
+      // some avi file will '0 0 d c 0 0 0 0 0 0 d c x x x x'
+      // most of are '0 0 d c x x x x'
+      video[id].FileStream.ReadBuffer(buf, 4);
+      list_type := char(buf[0]) + char(buf[1]) + char(buf[2]) + char(buf[3]);
+
+      video[id].FileStream.ReadBuffer(buf, 4);
+      list_len := (buf[3] shl 24) + (buf[2] shl 16) + (buf[1] shl 8) + buf[0];
+
+      if (list_type = '00dc') AND (list_len = 0) then
+        video[id].FileStream.Position := video[id].FileStream.Position + 8
+      else if (list_type = '00dc') AND (list_len = Height*Width*3) then
+      begin end
+      else
+        video[id].FileStream.Position := video[id].FileStream.Position - 8;
+
+    end
+    else
+      video[id].FileStream.Position := pos;
+
+    for y:=0 to Height-1 do
+    begin
+      scanLine := video[id].FrameData.ScanLine[y];
+      video[id].FileStream.Read(scanLine[0], Width*3);
+    end;
+    Result := True;
+  except
+    Result := False;
   end;
 end;
 
@@ -789,7 +875,7 @@ begin
   begin
     FrameWidth := StrToInt(video[id].FrameWidth);
     FrameHeight := StrToInt(video[id].FrameHeight);
-    FrameSize := FrameWidth * FrameHeight * 3;
+    FrameSize := FrameWidth * FrameHeight * 3 + video[id].FrameHeaderSize;
     if FileReady(filename[id], FrameSize) then
     begin
       if (video[id].FileStream <> nil) AND (fid[id] <> video[id].FileIndex) then
@@ -798,6 +884,12 @@ begin
       begin
         try
           video[id].FileStream := TFileStream.Create(filename[id], fmOpenRead + fmShareDenyNone);
+          if extension = '.avi' then
+          begin
+            video[id].FrameHeaderSize := 8;
+            video[id].StreamHeaderSize := FindAVIHeader(video[id].FileStream, FrameSize);
+            video[id].StreamHeaderSize := video[id].StreamHeaderSize + video[id].FrameHeaderSize;
+          end
         except
           video[id].FileStream := nil;
           Result := False;
@@ -806,9 +898,11 @@ begin
       end;
 
       pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
-      LoadDBI(id, FrameWidth, FrameHeight, pos);
-      video[id].FileIndex := fid[id];
-      video[id].FrameIndex := inx[id] + 1;
+      if LoadDBI(id, FrameWidth, FrameHeight, pos) then
+      begin
+        video[id].FileIndex := fid[id];
+        video[id].FrameIndex := inx[id] + 1;
+      end;
     end
     else
     begin
