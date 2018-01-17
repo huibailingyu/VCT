@@ -736,20 +736,15 @@ var
   TheThread : Dword;
 begin
   Result := 0;
+  param := 'ffmpeg.exe -an -ss ' + IntToStr(fid*video[id].ReadDuration) +
+           ' -hwaccel dxva2' +
+           ' -i ' + video[id].FullFileName +
+           ' -t ' + IntToStr(video[id].ReadDuration);
+
   if extension = '.avi' then
-  begin
-    param := 'ffmpeg.exe -ss ' + IntToStr(fid*video[id].ReadDuration) +
-             ' -i ' + video[id].FullFileName +
-             ' -t ' + IntToStr(video[id].ReadDuration) +
-             ' -an -pix_fmt bgr24 -c:v rawvideo -y ' + output_filename;
-  end
+    param := param + ' -pix_fmt bgr24 -c:v rawvideo -y ' + output_filename
   else
-  begin
-    param := 'ffmpeg.exe -ss ' + IntToStr(fid*video[id].ReadDuration) +
-             ' -i ' + video[id].FullFileName +
-             ' -t ' + IntToStr(video[id].ReadDuration) +
-             ' -an -f rawvideo -pix_fmt bgr24 -y ' + output_filename;
-  end;
+    param := param + ' -f rawvideo -pix_fmt bgr24 -y ' + output_filename;
 
   if False OR (fid = 0) AND (video[id].FileIndex < 0) then
   begin
@@ -852,7 +847,7 @@ begin
       else
       begin
         frame_pos := (inx[id] - fid[id] * FrameRate[id]);
-        if frame_pos = 5 then
+        if (frame_pos = 5) AND (inx[id] + FrameRate[id] < video[id].FrameNumber) then
         begin
           next_filename := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id] + 1) + extension;
           if Not FileExists(next_filename) then
@@ -1291,7 +1286,7 @@ begin
   end
   else
   begin
-    Timer1.Interval := 1000;
+    Timer1.Interval := 500;
     //Timer1.Enabled := False;
   end;
 end;
