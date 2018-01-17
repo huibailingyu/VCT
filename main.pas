@@ -123,7 +123,7 @@ type
     function FileReady(filename:String; filesize: int64): Boolean;
     function CallFFmpegDecode(id, fid:Integer; output_filename: String): THandle;
     function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
-    function LoadDBI(id, Width, Height, Pos: integer): Boolean;
+    function LoadDBI(id, Width, Height : Integer; Pos: int64): Boolean;
     function LoadPicture(inx1, inx2, reset: integer): Boolean;
     procedure ShowPicture;
     procedure ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
@@ -773,12 +773,12 @@ begin
   end;
 end;
 
-function TForm1.LoadDBI(id, Width, Height, Pos: integer): Boolean;
+function TForm1.LoadDBI(id, Width, Height : Integer; Pos: int64): Boolean;
 var
   y: Integer;
   scanLine: PChar;
   list_type : string;
-  list_len : integer;
+  list_len, size : integer;
   buf : array [0..3] of byte;
 begin
   if video[id].FrameData = nil then
@@ -794,22 +794,20 @@ begin
   try
     if extension  = '.avi' then
     begin
-      video[id].FileStream.Position := video[id].StreamHeaderSize + pos;
-      // some avi file will '0 0 d c 0 0 0 0 0 0 d c x x x x'
-      // most of are '0 0 d c x x x x'
-      video[id].FileStream.ReadBuffer(buf, 4);
-      list_type := char(buf[0]) + char(buf[1]) + char(buf[2]) + char(buf[3]);
-
-      video[id].FileStream.ReadBuffer(buf, 4);
-      list_len := (buf[3] shl 24) + (buf[2] shl 16) + (buf[1] shl 8) + buf[0];
-
-      if (list_type = '00dc') AND (list_len = 0) then
-        video[id].FileStream.Position := video[id].FileStream.Position + 8
-      else if (list_type = '00dc') AND (list_len = Height*Width*3) then
-      begin end
-      else
-        video[id].FileStream.Position := video[id].FileStream.Position - 8;
-
+      size := Height*Width*3;
+      for y := -8 to 16 do
+      begin
+        video[id].FileStream.Position := video[id].StreamHeaderSize + pos + y;
+        video[id].FileStream.ReadBuffer(buf, 4);
+        list_len := (buf[3] shl 24) + (buf[2] shl 16) + (buf[1] shl 8) + buf[0];
+        if list_len = size then
+          break;
+      end;
+      if y>16 then
+      begin
+        Result := False;
+        exit;
+      end;
     end
     else
       video[id].FileStream.Position := pos;
@@ -828,7 +826,8 @@ end;
 function TForm1.LoadPicture(inx1, inx2, reset: integer): Boolean;
 var
    inx, fid, FrameRate : array[1..2] of Integer;
-   FrameWidth, FrameHeight, FrameSize, pos, frame_pos: Integer;
+   FrameWidth, FrameHeight, FrameSize, frame_pos: Integer;
+   pos : int64;
    filename : array[1..2] of string;
    next_filename : string;
    id: Integer;
@@ -924,6 +923,11 @@ begin
       begin
         video[id].FileIndex := fid[id];
         video[id].FrameIndex := inx[id] + 1;
+      end
+      else
+      begin
+        Result := False;
+        break;
       end;
     end
     else

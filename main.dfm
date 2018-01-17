@@ -5,7 +5,7 @@ object Form1: TForm1
   Caption = 'Video Compare Tool'
   ClientHeight = 485
   ClientWidth = 664
-  Color = clHotLight
+  Color = clWindowFrame
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
