@@ -826,7 +826,7 @@ begin
 
   if extension = '.avi' then
     param := param + ' -pix_fmt bgr24 -c:v rawvideo -y ' + output_filename
-  else if extension = '.bmp' then
+  else if (extension = '.bmp') or (extension = '.png') then
   begin
     inx := fid * ceil(video[id].FrameRate) * video[id].ReadDuration;
     if inx <= issue_frm_inx then
@@ -926,6 +926,7 @@ var
    i, id: Integer;
    ThreadHandle: array[1..2] of THandle;
    condition : Boolean;
+   png : TPngImage;
 begin
   Result := False;
   inx[1] := inx1;
@@ -950,7 +951,7 @@ begin
         FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
         fid[id] := inx[id] div FrameRate[id];
       end;
-      if extension = '.bmp' then
+      if (extension = '.bmp') or (extension = '.png') then
         filename[id] := video[id].FileNamePrefix + IntToStr(inx[id]) + extension
       else
         filename[id] := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id]) + extension;
@@ -966,14 +967,14 @@ begin
         else
         begin
           frame_pos := (inx[id] - fid[id] * FrameRate[id]);
-          if extension = '.bmp' then
+          if (extension = '.bmp') or (extension = '.png') then
             condition := True
           else
             condition := inx[id] + FrameRate[id] < video[id].FrameNumber;
         end;
         if (frame_pos = 5) AND condition then
         begin
-          if extension = '.bmp' then
+          if (extension = '.bmp') or (extension = '.png') then
             next_filename := video[id].FileNamePrefix + IntToStr((fid[id] + 1) * FrameRate[id]) + extension
           else
             next_filename := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id] + 1) + extension;
@@ -1018,16 +1019,32 @@ begin
   Result := True;
   for id:=1 to picture_number do
   begin
-    if extension = '.bmp' then
+    if (extension = '.bmp') or (extension = '.png') then
     begin
       if FileExists(filename[id]) then
       begin
-        try
-          video[id].FrameData.LoadFromFile(filename[id]);
-          video[id].FileIndex := fid[id];
-          video[id].FrameIndex := inx[id] + 1;
-        except
-          Result := False;
+        if extension = '.png' then
+        begin
+          try
+            png := TPngImage.Create;
+            png.LoadFromFile(filename[id]);
+            video[id].FrameData.Assign(png);
+            png.Free;
+            video[id].FileIndex := fid[id];
+            video[id].FrameIndex := inx[id] + 1;
+          except
+            Result := False;
+          end;
+        end
+        else
+        begin
+          try
+            video[id].FrameData.LoadFromFile(filename[id]);
+            video[id].FileIndex := fid[id];
+            video[id].FrameIndex := inx[id] + 1;
+          except
+            Result := False;
+          end;
         end;
       end;
       continue;
@@ -1060,7 +1077,7 @@ begin
       if use_segment_mode then
         pos := (inx[id] - frame_index_list[fid[id]]) * FrameSize
       else
-        if extension = '.bmp' then
+        if (extension = '.bmp') or (extension = '.png') then
           pos := 0
         else
           pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
