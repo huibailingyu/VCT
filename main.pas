@@ -111,6 +111,8 @@ type
     video : array[1..2] of TVideo;
     PrevThreadHandle: array[1..2] of THandle;
 
+    frame_index_list : array of Integer;
+    use_segment_mode : Boolean;
     log_file: TStrings;
 
     procedure VideoInit;
@@ -340,7 +342,12 @@ procedure TForm1.VideoSetParameters(id : integer; filename: String);
 var
   cmd, tmp: String;
   output : TStrings;
-  d, w: integer;
+  d, w, i : integer;
+  playlist, time_lists : string;
+  MyText: TStringlist;
+  info :TStrings;
+  dur, fps : Real;
+  segment_duration : Integer;
 begin
   video[id].FullFileName := filename;
   if video[id].FileName = '' then
@@ -423,6 +430,60 @@ begin
     end;
   end;
   output.Free;
+
+  if use_Segment_mode then
+  begin
+    caption := 'ffmpeg segment';
+
+    fps := video[id].FrameRate;
+    segment_duration := ceil(StrToFloat(video[id].FileDuration) / 20.0);
+    if segment_duration < 2 then
+       segment_duration := 2;
+
+    time_lists := '2';
+    d := 2;
+    while d < StrToFloat(video[id].FileDuration) do
+    begin
+      time_lists := time_lists + ',' + IntToSTr(segment_duration);
+      d := d + segment_duration;
+    end;
+
+    // ffmpeg -i Youtube_sample_Blue_Angels_360_30s.mp4 -vcodec copy -an
+    // -f ssegment -segment_time 2 -segment_list_type csv -segment_list playlist.m3u8  e:\vct_temp_____output\out%d.mp4
+    playlist := outfolder + 'playlist' + IntToSTr(id) + '.log';
+    cmd := 'ffmpeg -i ' + filename +
+           ' -v quiet' +
+           ' -vcodec copy -an -f ssegment' +
+           ' -segment_times ' + time_lists +
+           ' -segment_list_type csv' +
+           ' -segment_list ' + playlist + ' ' +
+           video[id].FileNamePrefix + '%d.mp4';
+    RunDOS(cmd, 10000);
+
+    if FileExists(playlist) then
+    begin
+      MyText := TStringlist.Create;
+      MyText.LoadFromFile(playlist);
+      if (MyText <> nil) AND (MyText.Count > 0) then
+      begin
+        SetLength(frame_index_list, MyText.Count+1);
+        frame_index_list[0] := 0;
+        info := TStringList.Create;
+        for i := 0 to MyText.Count - 1 do
+        begin
+          info.CommaText := MyText[i];
+          if info.Count = 3 then
+          begin
+            dur := StrToFloat(info[2]) - StrToFloat(info[1]);
+            d := ceil(dur*fps);
+            frame_index_list[i+1] := frame_index_list[i] + d;
+          end;
+        end;
+        info.Free;
+      end;
+      MyText.Free;
+    end;
+  end;
 
   if ShowFrameInfo1.Checked then
   begin
@@ -636,6 +697,7 @@ var
   ini_filename, old_outfolder : String;
   ini_file: TInifile;
 begin
+  use_segment_mode := True;
   outfolder := 'E:\vct_temp_____output\';
   //extension := '.bmp';
   extension := '.png';
@@ -737,12 +799,28 @@ function TForm1.CallFFmpegDecode(id, fid:Integer; output_filename: String): THan
 var
   param : string;
   TheThread : Dword;
+  filename : string;
 begin
   Result := 0;
-  param := 'ffmpeg.exe -an -ss ' + IntToStr(fid*video[id].ReadDuration) +
-           ' -hwaccel dxva2' +
-           ' -i ' + video[id].FullFileName +
-           ' -t ' + IntToStr(video[id].ReadDuration);
+  if use_segment_mode then
+  begin
+    filename := video[id].FileNamePrefix + IntToSTr(fid) + '.mp4';
+    if not FileExists(filename) then
+      exit;
+    param := 'ffmpeg.exe' +
+             ' -v quiet' +
+             ' -hwaccel dxva2' +
+             ' -i ' + filename;
+  end
+  else
+  begin
+    param := 'ffmpeg.exe -an -ss ' + IntToStr(fid*video[id].ReadDuration) +
+             ' -v quiet' +
+             ' -hwaccel dxva2' +
+             ' -i ' + video[id].FullFileName +
+             ' -t ' + IntToStr(video[id].ReadDuration);
+
+  end;
 
   if extension = '.avi' then
     param := param + ' -pix_fmt bgr24 -c:v rawvideo -y ' + output_filename
@@ -835,8 +913,9 @@ var
    pos : int64;
    filename : array[1..2] of string;
    next_filename : string;
-   id: Integer;
+   i, id: Integer;
    ThreadHandle: array[1..2] of THandle;
+   condition : Boolean;
 begin
   Result := False;
   inx[1] := inx1;
@@ -849,15 +928,34 @@ begin
        (inx[id] <> video[id].FrameIndex) then
     begin
       inx[id] := inx[id] - 1;
-      FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
-      fid[id] := inx[id] div FrameRate[id];
+      if use_segment_mode then
+      begin
+        for i := 0 to High(frame_index_list) - 1 do
+          if (frame_index_list[i] <= inx[id]) and (inx[id] < frame_index_list[i+1]) then
+            break;
+        fid[id] := i;
+      end
+      else
+      begin
+        FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
+        fid[id] := inx[id] div FrameRate[id];
+      end;
       filename[id] := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id]) + extension;
       if Not FileExists(filename[id]) then
         ThreadHandle[id] := CallFFmpegDecode(id, fid[id], filename[id])
       else
       begin
-        frame_pos := (inx[id] - fid[id] * FrameRate[id]);
-        if (frame_pos = 5) AND (inx[id] + FrameRate[id] < video[id].FrameNumber) then
+        if use_segment_mode then
+        begin
+          frame_pos := inx[id] - frame_index_list[fid[id]];
+          condition := fid[id] < High(frame_index_list);
+        end
+        else
+        begin
+          frame_pos := (inx[id] - fid[id] * FrameRate[id]);
+          condition := inx[id] + FrameRate[id] < video[id].FrameNumber;
+        end;
+        if (frame_pos = 5) AND condition then
         begin
           next_filename := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id] + 1) + extension;
           if Not FileExists(next_filename) then
@@ -923,7 +1021,11 @@ begin
         end;
       end;
 
-      pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
+      if use_segment_mode then
+        pos := (inx[id] - frame_index_list[fid[id]]) * FrameSize
+      else
+        pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
+
       if LoadDBI(id, FrameWidth, FrameHeight, pos) then
       begin
         video[id].FileIndex := fid[id];
