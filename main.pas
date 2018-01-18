@@ -749,10 +749,13 @@ begin
   else
     param := param + ' -f rawvideo -pix_fmt bgr24 -y ' + output_filename;
 
+  caption := param;
+  //if not use_segment_mode AND (False OR (fid = 0) AND (video[id].FileIndex < 0)) then
   if False OR (fid = 0) AND (video[id].FileIndex < 0) then
   begin
     Form1.Cursor := crHourGlass;
-    RunDos(param, INFINITE);
+    //RunDos(param, INFINITE);
+    RunDos(param, 30000);
     Form1.Cursor := crDefault;
   end
   else
@@ -779,6 +782,10 @@ var
   list_len, size : integer;
   buf : array [0..3] of byte;
 begin
+  Result := False;
+  if pos >= video[id].FileStream.Size then
+    exit;
+
   if video[id].FrameData = nil then
     video[id].FrameData := TBitMap.Create;
 
