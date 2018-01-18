@@ -110,7 +110,7 @@ type
 
     video : array[1..2] of TVideo;
     PrevThreadHandle: array[1..2] of THandle;
-    issue_frm_inx: Integer;
+    issue_frm_inx: array[1..2] of array of Integer;
 
     frame_index_list : array of Integer;
     use_segment_mode : Boolean;
@@ -127,7 +127,7 @@ type
     function CallFFmpegDecode(id, fid:Integer; output_filename: String): THandle;
     function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
     function LoadDBI(id, Width, Height : Integer; Pos: int64): Boolean;
-    function LoadPicture(inx1, inx2, reset: integer): Boolean;
+    function LoadPicture(inx1, inx2, wait_flag: integer): Boolean;
     procedure ShowPicture;
     procedure ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
     procedure ResetForm(input: Integer);
@@ -380,6 +380,10 @@ begin
   video[id].FrameWidth := output.Values['width'];
   video[id].FrameHeight := output.Values['height'];
   video[id].FileDuration := output.Values['duration'];
+  w := 1 + ceil(StrToFloat(video[id].FileDuration) / video[id].ReadDuration );
+  SetLength(issue_frm_inx[id], w);
+  for i := 0 to w do
+    issue_frm_inx[id][i] := -1;
 
   show.Width := StrToInt(video[id].FrameWidth);
   show.Height := StrToInt(video[id].FrameHeight);
@@ -699,7 +703,6 @@ var
   ini_file: TInifile;
 begin
   use_segment_mode := False;
-  issue_frm_inx := -1;
   outfolder := 'E:\vct_temp_____output\';
   //extension := '.bmp';
   extension := '.png';
@@ -802,7 +805,7 @@ var
   param : string;
   TheThread : Dword;
   filename : string;
-  inx : integer;
+  inx, i : integer;
 begin
   Result := 0;
   if use_segment_mode then
@@ -829,11 +832,18 @@ begin
   else if (extension = '.bmp') or (extension = '.png') then
   begin
     inx := fid * ceil(video[id].FrameRate) * video[id].ReadDuration;
-    if inx <= issue_frm_inx then
-      exit;
-    issue_frm_inx := inx;
+    for i := 0 to High(issue_frm_inx[id]) do
+    begin
+      if issue_frm_inx[id][i] = -1 then
+      begin
+        issue_frm_inx[id][i] := inx;
+        break;
+      end
+      else if issue_frm_inx[id][i] = inx then
+        exit;
+    end;
     param := param + ' -pix_fmt bgr24 -f image2 -start_number ' +
-                     IntToStr(issue_frm_inx) +
+                     IntToStr(inx) +
                      ' -y ' + video[id].FileNamePrefix + '%d' + extension;
   end
   else
@@ -916,7 +926,7 @@ begin
   end;
 end;
 
-function TForm1.LoadPicture(inx1, inx2, reset: integer): Boolean;
+function TForm1.LoadPicture(inx1, inx2, wait_flag: integer): Boolean;
 var
    inx, fid, FrameRate : array[1..2] of Integer;
    FrameWidth, FrameHeight, FrameSize, frame_pos: Integer;
@@ -992,6 +1002,17 @@ begin
      exit;
 
   // waiting
+  if wait_flag = 2 then
+  begin
+    Form1.Cursor := crHourGlass;
+    while not FileExists(filename[1]) do
+      sleep(100);
+    if picture_number > 1 then
+      while not FileExists(filename[2]) do
+         sleep(100);
+    Form1.Cursor := crDefault;
+  end;
+
   {
   Form1.Cursor := crHourGlass;
   if (PrevThreadHandle[1] <> 0) then
@@ -1046,7 +1067,9 @@ begin
             Result := False;
           end;
         end;
-      end;
+      end
+      else
+        Result := False;
       continue;
     end;
 
@@ -1254,7 +1277,7 @@ begin
   except
     Vinx := video[1].FrameIndex;
   end;
-  if LoadPicture(Vinx, Vinx, 1) then
+  if LoadPicture(Vinx, Vinx, 2) then
   begin
     ShowInformation;
     ShowPicture;
