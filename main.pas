@@ -203,6 +203,7 @@ var
   sa: TSecurityAttributes;
   inS: THandleStream;
 begin
+  caption := CommandLine;
   Result := TStringList.Create;
   Result.Text := '';
 
@@ -363,7 +364,7 @@ begin
 
   Form1.Cursor := crHourGlass;
   caption := 'ffprobe stream';
-  cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,bit_rate,duration';
+  cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,avg_frame_rate,bit_rate,duration';
   output := RunDOS(cmd, INFINITE);
 
   video[id].CodecName := output.Values['codec_name'];
@@ -376,6 +377,8 @@ begin
   show.Height := StrToInt(video[id].FrameHeight);
 
   tmp := output.Values['r_frame_rate'];
+  if tmp = 'N/A' then
+    tmp := output.Values['avg_frame_rate'];
   if tmp <> 'N/A' then
   begin
     d := Pos('/', tmp);
