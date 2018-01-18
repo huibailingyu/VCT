@@ -110,6 +110,7 @@ type
 
     video : array[1..2] of TVideo;
     PrevThreadHandle: array[1..2] of THandle;
+    issue_frm_inx: Integer;
 
     frame_index_list : array of Integer;
     use_segment_mode : Boolean;
@@ -697,7 +698,8 @@ var
   ini_filename, old_outfolder : String;
   ini_file: TInifile;
 begin
-  use_segment_mode := True;
+  use_segment_mode := False;
+  issue_frm_inx := -1;
   outfolder := 'E:\vct_temp_____output\';
   //extension := '.bmp';
   extension := '.png';
@@ -800,6 +802,7 @@ var
   param : string;
   TheThread : Dword;
   filename : string;
+  inx : integer;
 begin
   Result := 0;
   if use_segment_mode then
@@ -807,32 +810,39 @@ begin
     filename := video[id].FileNamePrefix + IntToSTr(fid) + '.mp4';
     if not FileExists(filename) then
       exit;
-    param := 'ffmpeg.exe' +
+    param := 'ffmpeg -an' +
              ' -v quiet' +
              ' -hwaccel dxva2' +
              ' -i ' + filename;
   end
   else
   begin
-    param := 'ffmpeg.exe -an -ss ' + IntToStr(fid*video[id].ReadDuration) +
+    param := 'ffmpeg -an -ss ' + IntToStr(fid*video[id].ReadDuration) +
              ' -v quiet' +
              ' -hwaccel dxva2' +
              ' -i ' + video[id].FullFileName +
              ' -t ' + IntToStr(video[id].ReadDuration);
-
   end;
 
   if extension = '.avi' then
     param := param + ' -pix_fmt bgr24 -c:v rawvideo -y ' + output_filename
+  else if extension = '.bmp' then
+  begin
+    inx := fid * ceil(video[id].FrameRate) * video[id].ReadDuration;
+    if inx <= issue_frm_inx then
+      exit;
+    issue_frm_inx := inx;
+    param := param + ' -pix_fmt bgr24 -f image2 -start_number ' +
+                     IntToStr(issue_frm_inx) +
+                     ' -y ' + video[id].FileNamePrefix + '%d' + extension;
+  end
   else
-    param := param + ' -f rawvideo -pix_fmt bgr24 -y ' + output_filename;
+    param := param + ' -pix_fmt bgr24 -f rawvideo -y ' + output_filename;
 
   caption := param;
-  //if not use_segment_mode AND (False OR (fid = 0) AND (video[id].FileIndex < 0)) then
   if False OR (fid = 0) AND (video[id].FileIndex < 0) then
   begin
     Form1.Cursor := crHourGlass;
-    //RunDos(param, INFINITE);
     RunDos(param, 30000);
     Form1.Cursor := crDefault;
   end
@@ -940,7 +950,10 @@ begin
         FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
         fid[id] := inx[id] div FrameRate[id];
       end;
-      filename[id] := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id]) + extension;
+      if extension = '.bmp' then
+        filename[id] := video[id].FileNamePrefix + IntToStr(inx[id]) + extension
+      else
+        filename[id] := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id]) + extension;
       if Not FileExists(filename[id]) then
         ThreadHandle[id] := CallFFmpegDecode(id, fid[id], filename[id])
       else
@@ -953,13 +966,21 @@ begin
         else
         begin
           frame_pos := (inx[id] - fid[id] * FrameRate[id]);
-          condition := inx[id] + FrameRate[id] < video[id].FrameNumber;
+          if extension = '.bmp' then
+            condition := True
+          else
+            condition := inx[id] + FrameRate[id] < video[id].FrameNumber;
         end;
         if (frame_pos = 5) AND condition then
         begin
-          next_filename := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id] + 1) + extension;
+          if extension = '.bmp' then
+            next_filename := video[id].FileNamePrefix + IntToStr((fid[id] + 1) * FrameRate[id]) + extension
+          else
+            next_filename := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id] + 1) + extension;
+
+          //if Not FileExists(next_filename) AND (PrevThreadHandle[id] = 0) then
           if Not FileExists(next_filename) then
-            ThreadHandle[id] := CallFFmpegDecode(id, fid[id] + 1, next_filename);
+            PrevThreadHandle[id] := CallFFmpegDecode(id, fid[id] + 1, next_filename);
         end;
       end;
       Result := True;
@@ -997,6 +1018,17 @@ begin
   Result := True;
   for id:=1 to picture_number do
   begin
+    if extension = '.bmp' then
+    begin
+      if FileExists(filename[id]) then
+      begin
+        video[id].FrameData.LoadFromFile(filename[id]);
+        video[id].FileIndex := fid[id];
+        video[id].FrameIndex := inx[id] + 1;
+      end;
+      continue;
+    end;
+
     FrameWidth := StrToInt(video[id].FrameWidth);
     FrameHeight := StrToInt(video[id].FrameHeight);
     FrameSize := FrameWidth * FrameHeight * 3 + video[id].FrameHeaderSize;
@@ -1024,7 +1056,10 @@ begin
       if use_segment_mode then
         pos := (inx[id] - frame_index_list[fid[id]]) * FrameSize
       else
-        pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
+        if extension = '.bmp' then
+          pos := 0
+        else
+          pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
 
       if LoadDBI(id, FrameWidth, FrameHeight, pos) then
       begin
