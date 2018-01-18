@@ -1022,9 +1022,13 @@ begin
     begin
       if FileExists(filename[id]) then
       begin
-        video[id].FrameData.LoadFromFile(filename[id]);
-        video[id].FileIndex := fid[id];
-        video[id].FrameIndex := inx[id] + 1;
+        try
+          video[id].FrameData.LoadFromFile(filename[id]);
+          video[id].FileIndex := fid[id];
+          video[id].FrameIndex := inx[id] + 1;
+        except
+          Result := False;
+        end;
       end;
       continue;
     end;
