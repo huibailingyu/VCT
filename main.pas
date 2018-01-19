@@ -109,7 +109,6 @@ type
     show_h: Integer;
 
     video : array[1..2] of TVideo;
-    PrevThreadHandle: array[1..2] of THandle;
     issue_frm_inx: array[1..2] of array of Integer;
 
     frame_index_list : array of Integer;
@@ -808,8 +807,6 @@ begin
     show := Tbitmap.Create;
   VideoInit;
   log_file := nil;
-  PrevThreadHandle[1] := 0;
-  PrevThreadHandle[2] := 0;
 
   DragAcceptFiles(Handle, True);
   ResetForm(0);
@@ -1055,9 +1052,8 @@ begin
           else
             next_filename := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id] + 1) + extension;
 
-          //if Not FileExists(next_filename) AND (PrevThreadHandle[id] = 0) then
           if Not FileExists(next_filename) then
-            PrevThreadHandle[id] := CallFFmpegDecode(id, fid[id] + 1, next_filename);
+            CallFFmpegDecode(id, fid[id] + 1, next_filename);
         end;
       end;
       Result := True;
@@ -1078,29 +1074,6 @@ begin
          sleep(100);
     Form1.Cursor := crDefault;
   end;
-
-  {
-  Form1.Cursor := crHourGlass;
-  if (PrevThreadHandle[1] <> 0) then
-  begin
-    writelog(PrevThreadHandle[1], 'wait start... ');
-    WaitForSingleObject(PrevThreadHandle[1], 5000);
-    writelog(PrevThreadHandle[1], 'wait end... ');
-  end;
-  PrevThreadHandle[1] := ThreadHandle[1];
-
-  if (picture_number > 1) then
-  begin
-    if (PrevThreadHandle[2] <> 0) then
-    begin
-      writelog(PrevThreadHandle[2], 'wait start... ');
-      WaitForSingleObject(PrevThreadHandle[2], 5000);
-      writelog(PrevThreadHandle[2], 'wait end... ');
-    end;
-    PrevThreadHandle[2] := ThreadHandle[2];
-  end;
-  Form1.Cursor := crDefault;
-   }
 
   // load filestrean
   Result := True;
