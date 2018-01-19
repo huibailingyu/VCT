@@ -118,6 +118,8 @@ type
     windows_size : integer;
     dlt_x : integer;
     dlt_y : integer;
+    move_x : integer;
+    move_y : integer;
     log_file: TStrings;
 
     procedure VideoInit;
@@ -1437,12 +1439,41 @@ begin
     mouse_status := 1;
     if (abs(x - split1) < 3) AND (video[2].FrameNumber > 0) then
       mouse_status := 2;
+    if windows_size = 2 then
+    begin
+      move_x := X;
+      move_y := Y;
+    end;
   end;
 end;
 
 procedure TForm1.FormMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
+var
+  w : integer;
 begin
+  if (windows_size = 2) AND (mouse_status <> 2) then
+  begin
+    caption := IntToStr(dlt_x) + ' X ' + IntToStr(dlt_y) + ' : ' + IntToStr(X) + ' X ' + IntToStr(Y);
+    move_x := X - move_x;
+    move_y := Y - move_y;
+    dlt_x := dlt_x + move_x;
+    dlt_y := dlt_y + move_y;
+    caption := caption + ' : ' + IntToStr(dlt_x) + ' X ' + IntToStr(dlt_y);
+    w := video[1].FrameData.Width - Form1.ClientWidth;
+    if dlt_x > w then
+       dlt_x := w
+    else if dlt_x < -w then
+       dlt_x := -w;
+
+    w := video[1].FrameData.Height - Form1.ClientHeight;
+    if dlt_y > w then
+       dlt_y := w
+    else if dlt_y < -w then
+       dlt_y := -w;
+    ShowPicture;
+  end;
+
   mouse_status := 0;
 end;
 
