@@ -48,6 +48,7 @@ object Form1: TForm1
     end
     object ShowInformation1: TMenuItem
       Caption = 'Show PSNR'
+      Checked = True
       OnClick = ShowInformation1Click
     end
     object N4: TMenuItem

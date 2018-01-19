@@ -377,7 +377,6 @@ begin
   end;
 
   Form1.Cursor := crHourGlass;
-  caption := 'ffprobe stream';
   cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,avg_frame_rate,bit_rate,duration';
   output := RunDOS(cmd, INFINITE);
 
@@ -446,8 +445,6 @@ begin
 
   if use_Segment_mode then
   begin
-    caption := 'ffmpeg segment';
-
     fps := video[id].FrameRate;
     segment_duration := ceil(StrToFloat(video[id].FileDuration) / 20.0);
     if segment_duration < 2 then
@@ -918,7 +915,6 @@ begin
   else
     param := param + ' -pix_fmt bgr24 -f rawvideo -y ' + output_filename;
 
-  caption := param;
   if False OR (fid = 0) AND (video[id].FileIndex < 0) then
   begin
     Form1.Cursor := crHourGlass;
@@ -928,6 +924,7 @@ begin
   else
   begin
     try
+      caption := param;
       Result := createthread(nil, 0, @RunFFMPEG, PChar(param), 0, TheThread);
       writelog(Result, 'createthread: ' + param);
     except
@@ -1138,7 +1135,8 @@ begin
         end;
       end
       else
-        Result := False;
+        if filename[id] <> '' then
+          Result := False;
       continue;
     end;
 
@@ -1454,12 +1452,10 @@ var
 begin
   if (windows_size = 2) AND (mouse_status <> 2) then
   begin
-    caption := IntToStr(dlt_x) + ' X ' + IntToStr(dlt_y) + ' : ' + IntToStr(X) + ' X ' + IntToStr(Y);
     move_x := X - move_x;
     move_y := Y - move_y;
     dlt_x := dlt_x + move_x;
     dlt_y := dlt_y + move_y;
-    caption := caption + ' : ' + IntToStr(dlt_x) + ' X ' + IntToStr(dlt_y);
     w := video[1].FrameData.Width - Form1.ClientWidth;
     if dlt_x > w then
        dlt_x := w
@@ -1553,22 +1549,32 @@ begin
 
   if windows_size = 2 then
   begin
-    opened := True;
     if Key = ord('W') then       // W up
-      dlt_y := dlt_y + offset
+    begin
+      dlt_y := dlt_y + offset;
+      opened := True;
+    end
     else if Key = ord('X') then  // X down
-      dlt_y := dlt_y - offset
+    begin
+      dlt_y := dlt_y - offset;
+      opened := True;
+    end
     else if Key = ord('A') then  // A left
-      dlt_x := dlt_x - offset
+    begin
+      dlt_x := dlt_x - offset;
+      opened := True;
+    end
     else if Key = ord('D') then  // D right
-      dlt_x := dlt_x + offset
+    begin
+      dlt_x := dlt_x + offset;
+      opened := True;
+    end
     else if Key = ord('S') then  // S cneter
     begin
       dlt_y := 0;
       dlt_x := 0;
-    end
-    else
-      opened := False;
+      opened := True;
+    end;
 
     w := video[1].FrameData.Width - Form1.ClientWidth;
     if dlt_x > w then
