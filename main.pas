@@ -111,7 +111,7 @@ type
     video : array[1..2] of TVideo;
     issue_frm_inx: array[1..2] of array of Integer;
 
-    frame_index_list : array of Integer;
+    frame_index_list : array[1..2] of array of Integer;
     use_segment_mode : Boolean;
 
     windows_size : integer;
@@ -346,7 +346,7 @@ end;
 
 procedure TForm1.VideoSetParameters(id : integer; filename: String);
 var
-  cmd, tmp: String;
+  cmd, tmp, segment_filename: String;
   output : TStrings;
   d, w, i : integer;
   playlist, time_lists : string;
@@ -469,29 +469,41 @@ begin
            video[id].FileNamePrefix + '%d.mp4';
     RunDOS(cmd, 10000);
 
+    // for some Variable fps stream frm_cnt != duration * fps
     if FileExists(playlist) then
     begin
       MyText := TStringlist.Create;
       MyText.LoadFromFile(playlist);
       if (MyText <> nil) AND (MyText.Count > 0) then
       begin
-        SetLength(frame_index_list, MyText.Count+1);
-        frame_index_list[0] := 0;
+        SetLength(frame_index_list[id], MyText.Count+1);
+        frame_index_list[id][0] := 0;
         info := TStringList.Create;
         for i := 0 to MyText.Count - 1 do
         begin
-          info.CommaText := MyText[i];
-          if info.Count = 3 then
-          begin
-            dur := StrToFloat(info[2]) - StrToFloat(info[1]);
-            d := ceil(dur*fps);
-            frame_index_list[i+1] := frame_index_list[i] + d;
-          end;
+          {
+          segment_filename := video[id].FileNamePrefix + IntToStr(i) + '.mp4';
+          cmd := 'ffprobe -i ' + segment_filename + ' -select_streams v -show_entries stream=nb_frames';
+          output := RunDOS(cmd, INFINITE);
+          try
+            d := StrToInt(output.Values['nb_frames']);
+          except
+          }
+            info.CommaText := MyText[i];
+            if info.Count = 3 then
+            begin
+              dur := StrToFloat(info[2]) - StrToFloat(info[1]);
+              d := ceil(dur*fps);
+            end;
+          //end;
+
+          frame_index_list[id][i+1] := frame_index_list[id][i] + d;
         end;
         info.Free;
       end;
       MyText.Free;
     end;
+
   end;
 
   if ShowFrameInfo1.Checked then
@@ -869,6 +881,7 @@ var
   TheThread : Dword;
   filename : string;
   inx, i : integer;
+  first_segment : Boolean;
 begin
   Result := 0;
   if use_segment_mode then
@@ -878,7 +891,7 @@ begin
       exit;
     param := 'ffmpeg -an' +
              ' -v quiet' +
-             ' -hwaccel dxva2' +
+             //' -hwaccel dxva2' +
              ' -i ' + filename;
   end
   else
@@ -894,7 +907,10 @@ begin
     param := param + ' -pix_fmt bgr24 -c:v rawvideo -y ' + output_filename
   else if (extension = '.bmp') or (extension = '.png') then
   begin
-    inx := fid * ceil(video[id].FrameRate) * video[id].ReadDuration;
+    if use_segment_mode then
+      inx := frame_index_list[id][fid]
+    else
+      inx := fid * ceil(video[id].FrameRate) * video[id].ReadDuration;
     for i := 0 to High(issue_frm_inx[id]) do
     begin
       if issue_frm_inx[id][i] = -1 then
@@ -912,7 +928,11 @@ begin
   else
     param := param + ' -pix_fmt bgr24 -f rawvideo -y ' + output_filename;
 
-  if False OR (fid = 0) AND (video[id].FileIndex < 0) then
+  if (extension = '.png') OR (extension = '.bmp') then
+    first_segment := False
+  else
+    first_segment := False OR (fid = 0);
+  if first_segment AND (video[id].FileIndex < 0) then
   begin
     Form1.Cursor := crHourGlass;
     RunDos(param, 30000);
@@ -996,7 +1016,7 @@ var
    pos : int64;
    filename : array[1..2] of string;
    next_filename : string;
-   i, id: Integer;
+   i, id, k: Integer;
    ThreadHandle: array[1..2] of THandle;
    condition : Boolean;
    png : TPngImage;
@@ -1012,30 +1032,30 @@ begin
        (inx[id] <> video[id].FrameIndex) then
     begin
       inx[id] := inx[id] - 1;
+      FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
       if use_segment_mode then
       begin
-        for i := 0 to High(frame_index_list) - 1 do
-          if (frame_index_list[i] <= inx[id]) and (inx[id] < frame_index_list[i+1]) then
+        for i := 0 to High(frame_index_list[id]) - 1 do
+          if (frame_index_list[id][i] <= inx[id]) and (inx[id] < frame_index_list[id][i+1]) then
             break;
         fid[id] := i;
       end
       else
-      begin
-        FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
         fid[id] := inx[id] div FrameRate[id];
-      end;
+
       if (extension = '.bmp') or (extension = '.png') then
         filename[id] := video[id].FileNamePrefix + IntToStr(inx[id]) + extension
       else
         filename[id] := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id]) + extension;
+
       if Not FileExists(filename[id]) then
-        ThreadHandle[id] := CallFFmpegDecode(id, fid[id], filename[id])
+        CallFFmpegDecode(id, fid[id], filename[id])
       else
       begin
         if use_segment_mode then
         begin
-          frame_pos := inx[id] - frame_index_list[fid[id]];
-          condition := fid[id] < High(frame_index_list);
+          frame_pos := inx[id] - frame_index_list[id][fid[id]];
+          condition := fid[id] < High(frame_index_list[id]);
         end
         else
         begin
@@ -1045,10 +1065,14 @@ begin
           else
             condition := inx[id] + FrameRate[id] < video[id].FrameNumber;
         end;
+
         if (frame_pos = 5) AND condition then
         begin
           if (extension = '.bmp') or (extension = '.png') then
-            next_filename := video[id].FileNamePrefix + IntToStr((fid[id] + 1) * FrameRate[id]) + extension
+            if use_segment_mode then
+              next_filename := video[id].FileNamePrefix + IntToStr(frame_index_list[id][fid[id]+1]) + extension
+            else
+              next_filename := video[id].FileNamePrefix + IntToStr((fid[id] + 1) * FrameRate[id]) + extension
           else
             next_filename := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id] + 1) + extension;
 
@@ -1077,7 +1101,9 @@ begin
 
   // load filestrean
   Result := True;
-  for id:=1 to picture_number do
+  k := 0;
+  id := 1;
+  while id <= picture_number do
   begin
     if (extension = '.bmp') or (extension = '.png') then
     begin
@@ -1091,7 +1117,7 @@ begin
             video[id].FrameData.Assign(png);
             png.Free;
             video[id].FileIndex := fid[id];
-            video[id].FrameIndex := inx[id] + 1;
+            video[id].FrameIndex := inx[id] + 1 + k;
           except
             Result := False;
           end;
@@ -1101,15 +1127,30 @@ begin
           try
             video[id].FrameData.LoadFromFile(filename[id]);
             video[id].FileIndex := fid[id];
-            video[id].FrameIndex := inx[id] + 1;
+            video[id].FrameIndex := inx[id] + 1 + k;
           except
             Result := False;
           end;
         end;
       end
       else
-        if filename[id] <> '' then
-          Result := False;
+      begin
+        if filename[id] = '' then
+        begin
+          id := id + 1;
+          continue;
+        end
+        else
+        begin
+          k := k + 1;
+          filename[id] := video[id].FileNamePrefix + IntToStr(inx[id] + k) + extension;
+          if k < 10 then
+            continue
+          else
+            Result := False;
+        end;
+      end;
+      id := id + 1;
       continue;
     end;
 
@@ -1137,13 +1178,15 @@ begin
         end;
       end;
 
-      if use_segment_mode then
-        pos := (inx[id] - frame_index_list[fid[id]]) * FrameSize
+      if (extension = '.bmp') or (extension = '.png') then
+        pos := 0
       else
-        if (extension = '.bmp') or (extension = '.png') then
-          pos := 0
+      begin
+        if use_segment_mode then
+          pos := (inx[id] - frame_index_list[id][fid[id]]) * FrameSize
         else
           pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
+      end;
 
       if LoadDBI(id, FrameWidth, FrameHeight, pos) then
       begin
@@ -1195,9 +1238,9 @@ begin
       end;
 
       if (picture_number = 1) and (id = 1) then
-        LoadPicture(1, video[2].FrameIndex, 1)
+        LoadPicture(1, video[2].FrameIndex, 2)
       else if (picture_number = 2) and (id = 2) then
-        LoadPicture(1, 1, 1)
+        LoadPicture(1, 1, 2)
     end
     else if Pos('.png', FileExt) > 0 then
     begin
