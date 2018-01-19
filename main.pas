@@ -101,7 +101,7 @@ type
     scale_x : real;
     split1 : Integer;
     picture_number : Integer;
-    mouse_down : Integer;
+    mouse_status : Integer;
 
     show : TBitmap;
     show_rect: TRect;
@@ -114,6 +114,10 @@ type
 
     frame_index_list : array of Integer;
     use_segment_mode : Boolean;
+
+    windows_size : integer;
+    dlt_x : integer;
+    dlt_y : integer;
     log_file: TStrings;
 
     procedure VideoInit;
@@ -130,7 +134,7 @@ type
     function LoadPicture(inx1, inx2, wait_flag: integer): Boolean;
     procedure ShowPicture;
     procedure ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
-    procedure ResetForm(input: Integer);
+    procedure ResetForm(windows_size: Integer);
 
     function DeleteDirectory(NowPath: string): Boolean;
     procedure CheckResult(b: Boolean);
@@ -296,7 +300,7 @@ begin
   Timer1.Enabled := False;
   Form1.Canvas.FillRect(Form1.ClientRect);
   picture_number := 0;
-  mouse_down := 0;
+  mouse_status := 0;
 
   show_rect := Rect(0, 0, 0, 0);
   show_w := 0;
@@ -380,11 +384,13 @@ begin
   video[id].FrameWidth := output.Values['width'];
   video[id].FrameHeight := output.Values['height'];
   video[id].FileDuration := output.Values['duration'];
-  w := 1 + ceil(StrToFloat(video[id].FileDuration) / video[id].ReadDuration );
-  SetLength(issue_frm_inx[id], w);
-  for i := 0 to w do
-    issue_frm_inx[id][i] := -1;
-
+  if video[id].FileDuration <> 'N/A' then
+  begin
+    w := 1 + ceil(StrToFloat(video[id].FileDuration) / video[id].ReadDuration );
+    SetLength(issue_frm_inx[id], w);
+    for i := 0 to w do
+      issue_frm_inx[id][i] := -1;
+  end;
   show.Width := StrToInt(video[id].FrameWidth);
   show.Height := StrToInt(video[id].FrameHeight);
 
@@ -585,19 +591,43 @@ end;
 procedure TForm1.ShowPicture;
 var
   pos : Integer;
+  sou : TRect;
 begin
   if (show_w <= 0) OR (show_h <= 0) then
     ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 0);
 
+  if (windows_size = 2) then
+  begin
+    sou.Left := (video[1].FrameData.Width - Form1.ClientWidth - dlt_x) div 2;
+    if sou.Left < 0 then
+      sou.Left := 0
+    else if sou.Left > video[1].FrameData.Width - Form1.ClientWidth then
+      sou.Left := video[1].FrameData.Width - Form1.ClientWidth;
+
+    sou.Top := (video[1].FrameData.Height - Form1.ClientHeight - dlt_y) div 2;
+    if sou.Top < 0 then
+      sou.Top := 0
+    else if sou.Top > video[1].FrameData.Height - Form1.ClientHeight then
+      sou.Top := video[1].FrameData.Height - Form1.ClientHeight;
+
+    sou.Right := sou.Left + Form1.ClientWidth;
+    sou.Bottom := sou.Top + Form1.ClientHeight;
+  end
+  else
+    sou.Left := 0;
+
   if picture_number = 1 then
   begin
-    Form1.Canvas.StretchDraw(show_rect, video[1].FrameData);
+    if windows_size < 2 then
+      Form1.Canvas.StretchDraw(show_rect, video[1].FrameData)
+    else
+      Form1.Canvas.CopyRect(Form1.ClientRect, video[1].FrameData.Canvas, sou);
   end
   else if picture_number = 2 then
   begin
 
     scale_x := video[1].FrameData.Width / show_w;
-    pos := Round(scale_x * (Split1 - show_rect.Left));
+    pos := Round(scale_x * (Split1 - show_rect.Left)) + sou.Left;
 
     show.Canvas.CopyRect(Rect(0, 0, pos, video[1].FrameData.Height),
                          video[1].FrameData.Canvas,
@@ -605,7 +635,10 @@ begin
     show.Canvas.CopyRect(Rect(pos, 0, video[2].FrameData.Width, video[2].FrameData.Height),
                          video[2].FrameData.Canvas,
                          Rect(pos, 0, video[2].FrameData.Width, video[2].FrameData.Height));
-    Form1.Canvas.StretchDraw(show_rect, show);
+    if windows_size < 2 then
+      Form1.Canvas.StretchDraw(show_rect, show)
+    else
+      Form1.Canvas.CopyRect(Form1.ClientRect, show.Canvas, sou);
     if (split1 > show_rect.Left) and (split1 < show_rect.Right) then
     begin
       Form1.Canvas.MoveTo(split1, show_rect.Top);
@@ -618,12 +651,20 @@ procedure TForm1.ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
 var
   old_w : Integer;
   sx, sy, ex, ey, nWidth, nHeight: Integer;
-  alf1, alf2 : Real;
 begin
   if VideoWidth*VideoHeight <= 0 then
     exit;
 
   old_w := show_w;
+
+  if windows_size = 2 then
+  begin
+    show_rect := Rect(0, 0, VideoWidth, VideoHeight);
+    show_w := VideoWidth;
+    show_h := VideoHeight;
+    Split1 := Form1.ClientWidth div 2;
+    exit;
+  end;
 
   if (Form1.ClientWidth >= VideoWidth) AND (Form1.ClientHeight >= VideoHeight) then
   begin
@@ -634,8 +675,6 @@ begin
   begin
     nWidth := Form1.ClientWidth;
     nHeight := Form1.ClientHeight;
-    alf1 := VideoWidth / Form1.ClientWidth;
-    alf2 := VideoHeight / Form1.ClientHeight;
     if (VideoWidth * Form1.ClientHeight <= VideoHeight * Form1.ClientWidth) then
       nWidth := round(VideoWidth * Form1.ClientHeight/ VideoHeight)
     else
@@ -666,12 +705,13 @@ begin
     Split1 := Form1.ClientWidth div 2;
 end;
 
-procedure TForm1.ResetForm(input: Integer);
+procedure TForm1.ResetForm(windows_size: Integer);
 var
   changed : Boolean;
+  x : integer;
 begin
   changed := False;
-  if (input = 0) AND (Form1.Left <= 0) then       // nomormal
+  if windows_size = 0  then       // nomormal
   begin
     Form1.ClientWidth := 664;
     Form1.ClientHeight := 480;
@@ -680,7 +720,7 @@ begin
     Form1.Canvas.FillRect(Form1.ClientRect);
     changed := True;
   end
-  else if (input > 0) AND (Form1.Left > 0) then  // max
+  else if (windows_size = 1) or ((windows_size = 2) AND (video[1].FrameData.Width > 0)) then  // max
   begin
     Form1.Width := Screen.Width;
     Form1.Height := Screen.Height;
@@ -688,12 +728,36 @@ begin
     Form1.Top := 0;
     Form1.Canvas.FillRect(Form1.ClientRect);
     changed := True;
+    if windows_size = 2 then
+    begin
+      HorzScrollBar.Tracking := True;
+      VertScrollBar.Tracking := True;
+    end;
   end;
+  {
+  else if (windows_size = 2) AND (video[1].FrameData.Width > 0) then  // original
+  begin
+    Form1.ClientWidth := video[1].FrameData.Width;
+    Form1.ClientHeight := video[1].FrameData.Height;
+    x := (Screen.Width - Form1.Width) div 2;
+    if x < 0 then
+      x := 0;
+    Form1.Left := x;
+    x := (Screen.Height - Form1.Height) div 2;
+    if x < 0 then
+      x := 0;
+    Form1.Top := x;
+    Form1.Canvas.FillRect(Form1.ClientRect);
+    Form1.ScrollBy((video[1].FrameData.Width - Form1.ClientWidth) div 2,
+                   (video[1].FrameData.Height - Form1.ClientHeight) div 2);
+    changed := True;
+  end;
+    }
 
   if changed AND (picture_number > 0) then
-    if input = 2 then
-      ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 1)
-    else
+    //if input = 2 then
+    //  ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 1)
+    //else
       ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 0);
 end;
 
@@ -702,6 +766,9 @@ var
   ini_filename, old_outfolder : String;
   ini_file: TInifile;
 begin
+  windows_size := 0;
+  dlt_x := 0;
+  dlt_y := 0;
   use_segment_mode := False;
   outfolder := 'E:\vct_temp_____output\';
   //extension := '.bmp';
@@ -735,7 +802,7 @@ begin
 
   Form1.DoubleBuffered := True;
   split1 := -1;
-  mouse_down := 0;
+  mouse_status := 0;
   Form1.Canvas.Pen.Width := 2;
   Form1.Canvas.Pen.Mode  := pmWhite;
   if show = nil then
@@ -1366,13 +1433,17 @@ procedure TForm1.FormMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   if (picture_number > 1) then
-    mouse_down := 1;
+  begin
+    mouse_status := 1;
+    if (abs(x - split1) < 3) AND (video[2].FrameNumber > 0) then
+      mouse_status := 2;
+  end;
 end;
 
 procedure TForm1.FormMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  mouse_down := 0;
+  mouse_status := 0;
 end;
 
 procedure TForm1.FormPaint(Sender: TObject);
@@ -1389,8 +1460,9 @@ begin
   else if Form1.Cursor <> crDefault then
     Form1.Cursor := crDefault;
 
-  if (mouse_down = 1) and (x <> split1) and (x >= show_rect.Left) and (x < show_rect.Right) and
-                                            (y >= show_rect.Top) and (y < show_rect.Bottom) then
+  if (mouse_status = 2) and (x <> split1)
+                      and (x >= show_rect.Left) and (x < show_rect.Right)
+                      and (y >= show_rect.Top) and (y < show_rect.Bottom) then
   begin
     split1 := x;
     ShowPicture;
@@ -1408,7 +1480,9 @@ procedure TForm1.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 var
   opened : Boolean;
+  offset, w: Integer;
 begin
+  offset := 16;
   opened := False;
   case Key of
     VK_LEFT:
@@ -1444,6 +1518,38 @@ begin
       Form1.Left := (Screen.Width - Form1.Width ) div 2;
       Form1.Top := (Screen.Height - Form1.Height ) div 2;
     end;
+  end;
+
+  if windows_size = 2 then
+  begin
+    opened := True;
+    if Key = ord('W') then       // W up
+      dlt_y := dlt_y + offset
+    else if Key = ord('X') then  // X down
+      dlt_y := dlt_y - offset
+    else if Key = ord('A') then  // A left
+      dlt_x := dlt_x - offset
+    else if Key = ord('D') then  // D right
+      dlt_x := dlt_x + offset
+    else if Key = ord('S') then  // S cneter
+    begin
+      dlt_y := 0;
+      dlt_x := 0;
+    end
+    else
+      opened := False;
+
+    w := video[1].FrameData.Width - Form1.ClientWidth;
+    if dlt_x > w then
+       dlt_x := w
+    else if dlt_x < -w then
+       dlt_x := -w;
+
+    w := video[1].FrameData.Height - Form1.ClientHeight;
+    if dlt_y > w then
+       dlt_y := w
+    else if dlt_y < -w then
+       dlt_y := -w;
   end;
 
   if Timer1.Enabled AND ((Key <> VK_DOWN) AND (Key <> VK_SPACE))then
@@ -1484,10 +1590,12 @@ end;
 
 procedure TForm1.FormDblClick(Sender: TObject);
 begin
-  if (Form1.Left > 0) OR (Form1.Top > 0) then
-    ResetForm(1)
-  else
-    ResetForm(0);
+  windows_size := windows_size + 1;
+  if windows_size > 2 then
+    windows_size := 0;
+
+  ResetForm(windows_size);
+
   if picture_number > 0 then
     ShowPicture;
           {

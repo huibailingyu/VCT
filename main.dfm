@@ -1,7 +1,8 @@
 object Form1: TForm1
   Left = 217
   Top = 277
-  BorderStyle = bsDialog
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
   Caption = 'Video Compare Tool'
   ClientHeight = 485
   ClientWidth = 664
@@ -47,7 +48,6 @@ object Form1: TForm1
     end
     object ShowInformation1: TMenuItem
       Caption = 'Show PSNR'
-      Checked = True
       OnClick = ShowInformation1Click
     end
     object N4: TMenuItem
