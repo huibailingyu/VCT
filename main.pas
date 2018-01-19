@@ -927,9 +927,15 @@ begin
       else if issue_frm_inx[id][i] = inx then
         exit;
     end;
-    param := param + ' -pix_fmt bgr24 -f image2 -start_number ' +
-                     IntToStr(inx) +
-                     ' -y ' + video[id].FileNamePrefix + '%d' + extension;
+    if extension = '.jpg' then
+      param := param + ' -f image2 -start_number ' +
+                       IntToStr(inx) +
+                       ' -q:v 1' +
+                       ' -y ' + video[id].FileNamePrefix + '%d' + extension
+    else
+      param := param + ' -pix_fmt bgr24 -f image2 -start_number ' +
+                       IntToStr(inx) +
+                       ' -y ' + video[id].FileNamePrefix + '%d' + extension;
   end
   else
     param := param + ' -pix_fmt bgr24 -f rawvideo -y ' + output_filename;
@@ -1026,6 +1032,7 @@ var
    ThreadHandle: array[1..2] of THandle;
    condition : Boolean;
    png : TPngImage;
+   jpg : TJpegImage;
 begin
   Result := False;
   inx[1] := inx1;
@@ -1122,6 +1129,19 @@ begin
             png.LoadFromFile(filename[id]);
             video[id].FrameData.Assign(png);
             png.Free;
+            video[id].FileIndex := fid[id];
+            video[id].FrameIndex := inx[id] + 1 + k;
+          except
+            Result := False;
+          end;
+        end
+        else if extension = '.jpg' then
+        begin
+          try
+            jpg := TJpegImage.Create;
+            jpg.LoadFromFile(filename[id]);
+            video[id].FrameData.Assign(jpg);
+            jpg.Free;
             video[id].FileIndex := fid[id];
             video[id].FrameIndex := inx[id] + 1 + k;
           except
