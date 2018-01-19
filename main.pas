@@ -113,6 +113,7 @@ type
 
     frame_index_list : array[1..2] of array of Integer;
     use_segment_mode : Boolean;
+    use_image : Boolean;
 
     windows_size : integer;
     dlt_x : integer;
@@ -792,6 +793,11 @@ begin
     ini_file.Free;
   end;
 
+  if (extension = '.avi') OR (extension = '.rgb') then
+    use_image := False
+  else
+    use_image := True;
+
   old_outfolder := outfolder;
   while not DirectoryExists(outfolder) do
   begin
@@ -905,7 +911,7 @@ begin
 
   if extension = '.avi' then
     param := param + ' -pix_fmt bgr24 -c:v rawvideo -y ' + output_filename
-  else if (extension = '.bmp') or (extension = '.png') then
+  else if use_image then
   begin
     if use_segment_mode then
       inx := frame_index_list[id][fid]
@@ -928,7 +934,7 @@ begin
   else
     param := param + ' -pix_fmt bgr24 -f rawvideo -y ' + output_filename;
 
-  if (extension = '.png') OR (extension = '.bmp') then
+  if use_image then
     first_segment := False
   else
     first_segment := False OR (fid = 0);
@@ -1043,7 +1049,7 @@ begin
       else
         fid[id] := inx[id] div FrameRate[id];
 
-      if (extension = '.bmp') or (extension = '.png') then
+      if use_image then
         filename[id] := video[id].FileNamePrefix + IntToStr(inx[id]) + extension
       else
         filename[id] := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id]) + extension;
@@ -1060,7 +1066,7 @@ begin
         else
         begin
           frame_pos := (inx[id] - fid[id] * FrameRate[id]);
-          if (extension = '.bmp') or (extension = '.png') then
+          if use_image then
             condition := True
           else
             condition := inx[id] + FrameRate[id] < video[id].FrameNumber;
@@ -1068,7 +1074,7 @@ begin
 
         if (frame_pos = 5) AND condition then
         begin
-          if (extension = '.bmp') or (extension = '.png') then
+          if use_image then
             if use_segment_mode then
               next_filename := video[id].FileNamePrefix + IntToStr(frame_index_list[id][fid[id]+1]) + extension
             else
@@ -1105,7 +1111,7 @@ begin
   id := 1;
   while id <= picture_number do
   begin
-    if (extension = '.bmp') or (extension = '.png') then
+    if use_image then
     begin
       if FileExists(filename[id]) then
       begin
@@ -1178,7 +1184,7 @@ begin
         end;
       end;
 
-      if (extension = '.bmp') or (extension = '.png') then
+      if use_image then
         pos := 0
       else
       begin
