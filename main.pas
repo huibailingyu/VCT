@@ -635,48 +635,28 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
-  ini_filename, old_outfolder : String;
-  ini_file: TInifile;
+  ini_filename : String;
 begin
-  use_segment_mode := False;
   outfolder := 'E:\vct_temp_____output\';
   //extension := '.bmp';
   extension := '.png';
   ini_filename := ExtractFilePath(paramstr(0)) + 'setting.ini';
-  if FileExists(ini_filename) then
-  begin
-    ini_file := TInifile.Create(ini_filename);
-    outfolder := ini_file.ReadString('setting', 'outfolder', outfolder);
-    extension := ini_file.ReadString('setting', 'extension', extension);
-    ini_file.Free;
-  end;
+  iniFileIO(ini_filename, extension, outfolder);
 
+  if DirectoryExists(outfolder) then
+    DeleteDirectory(outfolder);
+
+  use_segment_mode := False;
   if (extension = '.avi') OR (extension = '.rgb') then
     use_image := False
   else
     use_image := True;
 
-  old_outfolder := outfolder;
-  while not DirectoryExists(outfolder) do
-  begin
-    if not CreateDir(outfolder) then
-      outfolder := InputBox('Input Application Output Folder, this folder must be empty',
-                            'Create output folder ' + outfolder + ' failed!', outfolder);
-  end;
-  if old_outfolder <> outfolder then
-  begin
-    ini_file := TInifile.Create(ini_filename);
-    ini_file.WriteString('setting', 'outfolder', outfolder);
-    ini_file.WriteString('setting', 'extension', extension);
-    ini_file.Free;
-  end;
-
-  if DirectoryExists(outfolder) then
-    DeleteDirectory(outfolder);
-
+  Timer1.Enabled := False;
   Form1.DoubleBuffered := True;
   Form1.Canvas.Pen.Width := 2;
   Form1.Canvas.Pen.Mode  := pmWhite;
+  Form1.Canvas.FillRect(Form1.ClientRect);
 
   InitVideo(3);
 
