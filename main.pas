@@ -734,7 +734,7 @@ end;
 procedure TForm1.ResetForm(windows_size: Integer);
 var
   changed : Boolean;
-  x : integer;
+  x, y : integer;
 begin
   changed := False;
   if windows_size = 0  then       // nomormal
@@ -746,7 +746,7 @@ begin
     Form1.Canvas.FillRect(Form1.ClientRect);
     changed := True;
   end
-  else if (windows_size = 1) or ((windows_size = 2) AND (video[1].FrameData.Width > 0)) then  // max
+  else if (windows_size = 1) AND (video[1].FrameData.Width > 0) then  // max
   begin
     Form1.Width := Screen.Width;
     Form1.Height := Screen.Height;
@@ -754,31 +754,36 @@ begin
     Form1.Top := 0;
     Form1.Canvas.FillRect(Form1.ClientRect);
     changed := True;
-    if windows_size = 2 then
-    begin
-      HorzScrollBar.Tracking := True;
-      VertScrollBar.Tracking := True;
-    end;
-  end;
-  {
+  end
   else if (windows_size = 2) AND (video[1].FrameData.Width > 0) then  // original
   begin
-    Form1.ClientWidth := video[1].FrameData.Width;
-    Form1.ClientHeight := video[1].FrameData.Height;
-    x := (Screen.Width - Form1.Width) div 2;
-    if x < 0 then
-      x := 0;
-    Form1.Left := x;
-    x := (Screen.Height - Form1.Height) div 2;
-    if x < 0 then
-      x := 0;
-    Form1.Top := x;
+    x := Form1.Width - Form1.ClientWidth;
+    y := Form1.Height - Form1.ClientHeight;
+    if (Screen.Width - x > video[1].FrameData.Width) AND
+       (Screen.Height - y > video[1].FrameData.Height) then
+    begin
+      Form1.ClientWidth := video[1].FrameData.Width;
+      Form1.ClientHeight := video[1].FrameData.Height;
+      Form1.Left := (Screen.Width - Form1.Width) div 2;
+      Form1.Top := (Screen.Height - Form1.Height) div 2;
+    end
+    else
+    begin
+      Form1.ClientWidth := video[1].FrameData.Width;
+      Form1.ClientHeight := video[1].FrameData.Height;
+      x := (Screen.Width - Form1.Width) div 2;
+      if x < 0 then
+        x := 0;
+      Form1.Left := x;
+      y := (Screen.Height - Form1.Height) div 2;
+      if y < 0 then
+        y := 0;
+      Form1.Top := y;
+    end;
     Form1.Canvas.FillRect(Form1.ClientRect);
-    Form1.ScrollBy((video[1].FrameData.Width - Form1.ClientWidth) div 2,
-                   (video[1].FrameData.Height - Form1.ClientHeight) div 2);
     changed := True;
   end;
-    }
+
 
   if changed AND (picture_number > 0) then
     //if input = 2 then
