@@ -40,9 +40,6 @@ type
     BitMap: TBitMap;
 
     ReadDuration: Integer;
-
-    issue_frm_inx: array of Integer;
-    frame_index_list : array of Integer;
   end;
 
   TForm1 = class(TForm)
@@ -100,14 +97,9 @@ type
       Shift: TShiftState; X, Y: Integer);
   private
     { Private declarations }
-    video : array[1..2] of TVideo;
-
-    // setting parameters
     extension : String;
     outfolder: String;
-    use_segment_mode : Boolean;
-    use_image : Boolean;
-
+    scale_x : real;
     split1 : Integer;
     picture_number : Integer;
     mouse_status : Integer;
@@ -117,14 +109,21 @@ type
     show_w: Integer;
     show_h: Integer;
 
+    video : array[1..2] of TVideo;
+    issue_frm_inx: array[1..2] of array of Integer;
+
+    frame_index_list : array[1..2] of array of Integer;
+    use_segment_mode : Boolean;
+    use_image : Boolean;
+
     windows_size : integer;
     dlt_x : integer;
     dlt_y : integer;
     move_x : integer;
     move_y : integer;
 
-    procedure InitVideo;
-    procedure ProbeVideoParameters(id : integer; filename: String);
+    procedure VideoInit;
+    procedure VideoSetParameters(id : integer; filename: String);
 
     procedure ShowInformation;
     procedure InputFiles(Files: Tstrings);
@@ -164,7 +163,7 @@ begin
      Files.Add(Buffer);
   end;
   DragFinish(Msg.wParam);
-  InitVideo;
+  VideoInit;
   InputFiles(Files);
   Files.Free;
 end;
@@ -175,19 +174,10 @@ begin
   Result := 0;
 end;
 
-procedure TForm1.InitVideo;
+procedure TForm1.VideoInit;
 var
  id : integer;
 begin
-  windows_size := 0;
-  dlt_x := 0;
-  dlt_y := 0;
-
-  split1 := -1;
-  if show = nil then
-    show := Tbitmap.Create;
-  log_file := nil;
-
   Timer1.Enabled := False;
   Form1.Canvas.FillRect(Form1.ClientRect);
   picture_number := 0;
@@ -218,7 +208,7 @@ begin
   end;
 end;
 
-procedure TForm1.ProbeVideoParameters(id : integer; filename: String);
+procedure TForm1.VideoSetParameters(id : integer; filename: String);
 var
   cmd, tmp, segment_filename: String;
   output : TStrings;
@@ -261,9 +251,9 @@ begin
     begin
       video[id].FileDuration := StrToFloat(output.Values['duration']);
       w := 1 + ceil(video[id].FileDuration / video[id].ReadDuration );
-      SetLength(video[id].issue_frm_inx, w);
+      SetLength(issue_frm_inx[id], w);
       for i := 0 to w do
-        video[id].issue_frm_inx[i] := -1;
+        issue_frm_inx[id][i] := -1;
     end;
   except
     ShowMessage('probe stream information error!');
@@ -355,8 +345,8 @@ begin
       MyText.LoadFromFile(playlist);
       if (MyText <> nil) AND (MyText.Count > 0) then
       begin
-        SetLength(video[id].frame_index_list, MyText.Count+1);
-        video[id].frame_index_list[0] := 0;
+        SetLength(frame_index_list[id], MyText.Count+1);
+        frame_index_list[id][0] := 0;
         info := TStringList.Create;
         for i := 0 to MyText.Count - 1 do
         begin
@@ -376,7 +366,7 @@ begin
             end;
           //end;
 
-          video[id].frame_index_list[i+1] := video[id].frame_index_list[i] + d;
+          frame_index_list[id][i+1] := frame_index_list[id][i] + d;
         end;
         info.Free;
       end;
@@ -448,7 +438,6 @@ procedure TForm1.ShowPicture;
 var
   pos : Integer;
   sou : TRect;
-  scale_x : Real;
 begin
   if (show_w <= 0) OR (show_h <= 0) then
     ResetWindow(video[1].BitMap.Width, video[1].BitMap.Height, 0);
@@ -615,6 +604,7 @@ begin
     changed := True;
   end;
 
+
   if changed AND (picture_number > 0) then
     ResetWindow(video[1].BitMap.Width, video[1].BitMap.Height, 0);
 end;
@@ -624,6 +614,9 @@ var
   ini_filename, old_outfolder : String;
   ini_file: TInifile;
 begin
+  windows_size := 0;
+  dlt_x := 0;
+  dlt_y := 0;
   use_segment_mode := False;
   outfolder := 'E:\vct_temp_____output\';
   //extension := '.bmp';
@@ -661,10 +654,14 @@ begin
     DeleteDirectory(outfolder);
 
   Form1.DoubleBuffered := True;
+  split1 := -1;
+  mouse_status := 0;
   Form1.Canvas.Pen.Width := 2;
   Form1.Canvas.Pen.Mode  := pmWhite;
-
-  InitVideo;
+  if show = nil then
+    show := Tbitmap.Create;
+  VideoInit;
+  log_file := nil;
 
   DragAcceptFiles(Handle, True);
   ResetForm(0);
@@ -703,17 +700,17 @@ begin
   else if use_image then
   begin
     if use_segment_mode then
-      inx := video[id].frame_index_list[fid]
+      inx := frame_index_list[id][fid]
     else
       inx := fid * ceil(video[id].FrameRate) * video[id].ReadDuration;
-    for i := 0 to High(video[id].issue_frm_inx) do
+    for i := 0 to High(issue_frm_inx[id]) do
     begin
-      if video[id].issue_frm_inx[i] = -1 then
+      if issue_frm_inx[id][i] = -1 then
       begin
-        video[id].issue_frm_inx[i] := inx;
+        issue_frm_inx[id][i] := inx;
         break;
       end
-      else if video[id].issue_frm_inx[i] = inx then
+      else if issue_frm_inx[id][i] = inx then
         exit;
     end;
     if extension = '.jpg' then
@@ -834,8 +831,8 @@ begin
       FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
       if use_segment_mode then
       begin
-        for i := 0 to High(video[id].frame_index_list) - 1 do
-          if (video[id].frame_index_list[i] <= inx[id]) and (inx[id] < video[id].frame_index_list[i+1]) then
+        for i := 0 to High(frame_index_list[id]) - 1 do
+          if (frame_index_list[id][i] <= inx[id]) and (inx[id] < frame_index_list[id][i+1]) then
             break;
         fid[id] := i;
       end
@@ -853,8 +850,8 @@ begin
       begin
         if use_segment_mode then
         begin
-          frame_pos := inx[id] - video[id].frame_index_list[fid[id]];
-          condition := fid[id] < High(video[id].frame_index_list);
+          frame_pos := inx[id] - frame_index_list[id][fid[id]];
+          condition := fid[id] < High(frame_index_list[id]);
         end
         else
         begin
@@ -869,7 +866,7 @@ begin
         begin
           if use_image then
             if use_segment_mode then
-              next_filename := video[id].FileNamePrefix + IntToStr(video[id].frame_index_list[fid[id]+1]) + extension
+              next_filename := video[id].FileNamePrefix + IntToStr(frame_index_list[id][fid[id]+1]) + extension
             else
               next_filename := video[id].FileNamePrefix + IntToStr((fid[id] + 1) * FrameRate[id]) + extension
           else
@@ -966,7 +963,7 @@ begin
       else
       begin
         if use_segment_mode then
-          pos := (inx[id] - video[id].frame_index_list[fid[id]]) * FrameSize
+          pos := (inx[id] - frame_index_list[id][fid[id]]) * FrameSize
         else
           pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
       end;
@@ -1003,7 +1000,7 @@ begin
 
   filename := ChangeFileExt(ExtractFileName(input_filename), '');
   FileExt := ExtractFileExt(input_filename);
-  ProbeVideoParameters(id, input_filename);
+  VideoSetParameters(id, input_filename);
   if (Pos('.mp4', FileExt) > 0) OR (Pos('.h264', FileExt) > 0) OR
             (Pos('.264', FileExt) > 0) OR (Pos('.flv', FileExt) > 0) OR
             (Pos('.avi', FileExt) > 0) then
@@ -1014,7 +1011,7 @@ begin
         cmd := 'ffmpeg.exe -i ' + video[id].FullFileName + ' -vcodec copy -an -y ' + filename;
         RunDOS(cmd, INFINITE);
         video[id].FileName := ExtractFileName(video[id].FullFileName);
-        ProbeVideoParameters(id, filename);
+        VideoSetParameters(id, filename);
       end
       else if Pos('.flv', FileExt) > 0 then
       begin
