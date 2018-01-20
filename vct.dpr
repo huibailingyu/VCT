@@ -2,7 +2,8 @@ program vct;
 
 uses
   Forms,
-  main in 'main.pas' {Form1};
+  main in 'main.pas' {Form1},
+  utils in 'utils.pas';
 
 {$R *.res}
 
