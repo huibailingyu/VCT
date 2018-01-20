@@ -26,6 +26,28 @@ object Form1: TForm1
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
+  object ProgressBar1: TProgressBar
+    Left = 64
+    Top = 448
+    Width = 561
+    Height = 16
+    Cursor = crHandPoint
+    BorderWidth = 3
+    Min = 1
+    Max = 1
+    ParentShowHint = False
+    Position = 1
+    Smooth = True
+    Style = pbstMarquee
+    BarColor = clYellow
+    BackgroundColor = clNavy
+    SmoothReverse = True
+    ShowHint = True
+    TabOrder = 0
+    Visible = False
+    OnMouseMove = ProgressBar1MouseMove
+    OnMouseUp = ProgressBar1MouseUp
+  end
   object PopupMenu1: TPopupMenu
     Left = 240
     Top = 24
@@ -133,5 +155,12 @@ object Form1: TForm1
       'g|Bitmaps (*.bmp)|*.bmp'
     Left = 192
     Top = 56
+  end
+  object Timer2: TTimer
+    Enabled = False
+    Interval = 2000
+    OnTimer = Timer2Timer
+    Left = 288
+    Top = 72
   end
 end

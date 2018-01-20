@@ -72,6 +72,8 @@ type
     Frame11: TMenuItem;
     Frame12: TMenuItem;
     ShowFrameInfo1: TMenuItem;
+    ProgressBar1: TProgressBar;
+    Timer2: TTimer;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -94,6 +96,11 @@ type
     procedure FormShow(Sender: TObject);
     procedure Frame21Click(Sender: TObject);
     procedure Frame12Click(Sender: TObject);
+    procedure Timer2Timer(Sender: TObject);
+    procedure ProgressBar1MouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure ProgressBar1MouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
   private
     { Private declarations }
     extension : String;
@@ -565,7 +572,7 @@ end;
 
 procedure TForm1.ShowInformation;
 var
-  id : Integer;
+  id, count : Integer;
   info : string;
   str : TStrings;
 begin
@@ -596,7 +603,15 @@ begin
 
    if (ShowInformation1.Checked) AND (picture_number > 1) AND (Timer1.Enabled = False) Then
      info := info + ' || ' + psnr(video[1].FrameData, video[2].FrameData);
-  caption := info;
+   caption := info;
+
+   if picture_number = 1 then
+     count := video[1].FrameNumber
+   else
+     count := min(video[1].FrameNumber, video[2].FrameNumber);
+   if ProgressBar1.Max <> count then
+     ProgressBar1.Max := count;
+   ProgressBar1.Position := video[1].FrameIndex;
 end;
 
 procedure TForm1.ShowPicture;
@@ -1311,6 +1326,25 @@ begin
     end;
 end;
 
+procedure TForm1.ProgressBar1MouseMove(Sender: TObject; Shift: TShiftState; X,
+  Y: Integer);
+begin
+  ProgressBar1.Hint := IntToStr(Round(X * ProgressBar1.Max / ProgressBar1.Width) );
+end;
+
+procedure TForm1.ProgressBar1MouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+var
+  inx : integer;
+begin
+  inx := Round(X * ProgressBar1.Max / ProgressBar1.Width);
+  if LoadPicture(inx, inx, 2) then
+  begin
+    ShowInformation;
+    ShowPicture;
+  end;
+end;
+
 procedure TForm1.InputFiles(Files: Tstrings);
 var
   id : Integer;
@@ -1536,6 +1570,17 @@ begin
     split1 := x;
     ShowPicture;
   end;
+
+  if (Y > Form1.Height - 64) AND (ProgressBar1.Max > 1) AND Not ProgressBar1.Visible then
+  begin
+    ProgressBar1.Left := 64;
+    ProgressBar1.Top := Form1.ClientHeight - 40;
+    ProgressBar1.Width := Form1.ClientWidth - ProgressBar1.Left - 64;
+    ProgressBar1.Visible := True;
+  end;
+
+  if (Y < Form1.Height - 64) AND ProgressBar1.Visible then
+    Timer2.Enabled := True;
 end;
 
 procedure TForm1.ShowInformation1Click(Sender: TObject);
@@ -1667,8 +1712,20 @@ begin
   end;
 end;
 
+procedure TForm1.Timer2Timer(Sender: TObject);
+begin
+  if ProgressBar1.Visible then
+  begin
+    ProgressBar1.Visible := False;
+    Timer2.Enabled := False;
+  end;
+end;
+
 procedure TForm1.FormDblClick(Sender: TObject);
 begin
+  if ProgressBar1.Visible then
+    ProgressBar1.Visible := False;
+
   windows_size := windows_size + 1;
   if windows_size > 2 then
     windows_size := 0;
