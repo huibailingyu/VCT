@@ -135,11 +135,13 @@ type
     function psnr(bmp1, bmp2: TBitMap): string;
     procedure ShowInformation;
     procedure InputFiles(Files: Tstrings);
+    function CheckInputFile(input_filename: String): Boolean;
     function OpenPicture(input_filename: String; id: Integer): Boolean;
     function FileReady(filename:String; filesize: int64): Boolean;
     function CallFFmpegDecode(id, fid:Integer; output_filename: String): THandle;
     function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
     function LoadDBI(id, Width, Height : Integer; Pos: int64): Boolean;
+    function AssignImage(filename: string; bmp: TBitMap):Boolean;
     function LoadPicture(inx1, inx2, wait_flag: integer): Boolean;
     procedure ShowPicture;
     procedure ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
@@ -862,7 +864,7 @@ end;
 
 function TForm1.FindAVIHeader(fs : TFileStream; filesize: integer): integer;
 var
-  str, list_type : string;
+  list_type : string;
   list_len : integer;
   buf : array [0..3] of byte;
 begin
@@ -991,7 +993,6 @@ function TForm1.LoadDBI(id, Width, Height : Integer; Pos: int64): Boolean;
 var
   y: Integer;
   scanLine: PChar;
-  list_type : string;
   list_len, size : integer;
   buf : array [0..3] of byte;
 begin
@@ -1041,6 +1042,38 @@ begin
   end;
 end;
 
+function TForm1.AssignImage(filename: string; bmp: TBitMap):Boolean;
+var
+  png : TPngImage;
+  jpg : TJpegImage;
+  FileExt : string;
+begin
+  try
+    Result := True;
+    FileExt := ExtractFileExt(filename);
+    if FileExt = '.bmp' then
+      bmp.LoadFromFile(filename)
+    else if FileExt = '.png' then
+    begin
+      png := TPngImage.Create;
+      png.LoadFromFile(filename);
+      bmp.Assign(png);
+      png.Free;
+    end
+    else if FileExt = '.jpg' then
+    begin
+      jpg := TJpegImage.Create;
+      jpg.LoadFromFile(filename);
+      bmp.Assign(jpg);
+      jpg.Free;
+    end
+    else
+      Result := False;
+  except
+    Result := False;
+  end;
+end;
+
 function TForm1.LoadPicture(inx1, inx2, wait_flag: integer): Boolean;
 var
    inx, fid, FrameRate : array[1..2] of Integer;
@@ -1051,8 +1084,6 @@ var
    i, id, k: Integer;
    ThreadHandle: array[1..2] of THandle;
    condition : Boolean;
-   png : TPngImage;
-   jpg : TJpegImage;
 begin
   Result := False;
   inx[1] := inx1;
@@ -1142,42 +1173,13 @@ begin
     begin
       if FileExists(filename[id]) then
       begin
-        if extension = '.png' then
+        if AssignImage(filename[id], video[id].FrameData) then
         begin
-          try
-            png := TPngImage.Create;
-            png.LoadFromFile(filename[id]);
-            video[id].FrameData.Assign(png);
-            png.Free;
-            video[id].FileIndex := fid[id];
-            video[id].FrameIndex := inx[id] + 1 + k;
-          except
-            Result := False;
-          end;
-        end
-        else if extension = '.jpg' then
-        begin
-          try
-            jpg := TJpegImage.Create;
-            jpg.LoadFromFile(filename[id]);
-            video[id].FrameData.Assign(jpg);
-            jpg.Free;
-            video[id].FileIndex := fid[id];
-            video[id].FrameIndex := inx[id] + 1 + k;
-          except
-            Result := False;
-          end;
+          video[id].FileIndex := fid[id];
+          video[id].FrameIndex := inx[id] + 1 + k;
         end
         else
-        begin
-          try
-            video[id].FrameData.LoadFromFile(filename[id]);
-            video[id].FileIndex := fid[id];
-            video[id].FrameIndex := inx[id] + 1 + k;
-          except
-            Result := False;
-          end;
-        end;
+          Result := False;
       end
       else
       begin
@@ -1253,13 +1255,47 @@ begin
   end;
 end;
 
+function TForm1.CheckInputFile(input_filename: String): Boolean;
+var
+  FileExt, cmd : String;
+  output : TStrings;
+begin
+  FileExt := ExtractFileExt(input_filename);
+  if Not ((Pos('.mp4', FileExt) > 0) OR (Pos('.h264', FileExt) > 0) OR
+          (Pos('.264', FileExt) > 0) OR (Pos('.flv', FileExt) > 0) OR
+          (Pos('.avi', FileExt) > 0) OR (Pos('.ts', FileExt) > 0) OR
+          (Pos('.bmp', FileExt) > 0) OR (Pos('.png', FileExt) > 0) OR
+          (Pos('.jpg', FileExt) > 0)
+          ) then
+    Result := False
+  else
+  begin
+    Result := False;
+    try
+      cmd := 'ffprobe -i ' + input_filename + ' -select_streams v -show_entries stream=width,height';
+      output := RunDOS(cmd, 3000);
+      if (output.Count > 1) AND
+         (output.Values['width'] <> '0') AND (output.Values['height'] <> '0') then
+        Result := True;
+    except
+      Result := False;
+    end;
+  end;
+  if Not Result then
+    ShowMessage('Input file is not an available Video or Image file');
+end;
+
 function TForm1.OpenPicture(input_filename: String; id: Integer): Boolean;
 var
   FileExt : String;
   filename, cmd: String;
-  png : TPngImage;
-  jpg : TJPEGImage;
 begin
+  if Not CheckInputFile(input_filename) then
+  begin
+    Result := False;
+    exit;
+  end;
+
   filename := ChangeFileExt(ExtractFileName(input_filename), '');
   FileExt := ExtractFileExt(input_filename);
   VideoSetParameters(id, input_filename);
@@ -1288,29 +1324,21 @@ begin
       else if (picture_number = 2) and (id = 2) then
         LoadPicture(1, 1, 2)
     end
-    else if Pos('.png', FileExt) > 0 then
+    else if (Pos('.png', FileExt) > 0) OR
+            (Pos('.jpg', FileExt) > 0) OR
+            (Pos('.bmp', FileExt) > 0) then
     begin
-      png := TPngImage.Create;
-      png.LoadFromFile(input_filename);
-      video[id].FrameData.Assign(png);
-      png.Free;
-      video[id].FrameIndex := 1;
-      video[id].FrameNumber := 1;
+      if AssignImage(input_filename, video[id].FrameData) then
+      begin
+        video[id].FrameIndex := 1;
+        video[id].FrameNumber := 1;
+      end;
     end
-    else if Pos('.jpg', FileExt) > 0 then
+    else
     begin
-      jpg := TJPEGImage.Create;
-      jpg.LoadFromFile(input_filename);
-      video[id].FrameData.Assign(jpg);
-      jpg.Free;
-      video[id].FrameIndex := 1;
-      video[id].FrameNumber := 1;
-    end
-    else if Pos('.bmp', FileExt) > 0 then
-    begin
-      video[id].FrameData.LoadFromFile(input_filename);
-      video[id].FrameIndex := 1;
-      video[id].FrameNumber := 1;
+      ShowMessage('Unknow file format!');
+      Result := False;
+      exit;
     end;
 
     if (picture_number = id) then
@@ -1353,6 +1381,7 @@ end;
 procedure TForm1.InputFiles(Files: Tstrings);
 var
   id : Integer;
+  is_open: Boolean;
 begin
   if Files.Count <= 0 then
     exit;
@@ -1364,21 +1393,27 @@ begin
     picture_number := 1;
 
   id := 1;
-  OpenPicture(Files[0], id);
-  if Files.Count > 1 then
+  is_open := OpenPicture(Files[0], id);
+  if is_open and (Files.Count > 1) then
   begin
     id := 2;
-    OpenPicture(Files[1], id);
+    is_open := OpenPicture(Files[1], id);
   end;
 
-  ShowInformation;
-  split1 := Form1.ClientWidth div 2;
-  ShowPicture;
+  if is_open then
+  begin
+    ShowInformation;
+    split1 := Form1.ClientWidth div 2;
+    ShowPicture;
+  end
+  else
+    Caption := 'Please input...';
 end;
 
 procedure TForm1.OpenFile11Click(Sender: TObject);
 var
   id : Integer;
+  is_open : Boolean;
 begin
   id := (Sender as TMenuItem).tag;
   if OpenDialog1.Execute then
@@ -1393,18 +1428,22 @@ begin
 
     if id = 1 then
     begin
-      OpenPicture(OpenDialog1.Files[0], id);
-      if OpenDialog1.Files.Count > 1 then
+      is_open := OpenPicture(OpenDialog1.Files[0], id);
+      if is_open AND (OpenDialog1.Files.Count > 1) then
       begin
         id := 2;
-        OpenPicture(OpenDialog1.Files[1], id);
+        is_open := OpenPicture(OpenDialog1.Files[1], id);
       end;
     end
     else
-      OpenPicture(OpenDialog1.FileName, id);
-    ShowInformation;
-    split1 := Form1.ClientWidth div 2;
-    ShowPicture;
+      is_open := OpenPicture(OpenDialog1.FileName, id);
+
+    if is_open then
+    begin
+      ShowInformation;
+      split1 := Form1.ClientWidth div 2;
+      ShowPicture;
+    end;
   end;
 end;
 
