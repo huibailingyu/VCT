@@ -15,6 +15,8 @@ uses
   function DeleteDirectory(NowPath: string): Boolean;
   function psnr(bmp1, bmp2: TBitMap): string;
   function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
+  function FormatFileSize(nSize: integer): String;
+  function iniFileIO(ini_filename: string; var extension, outfolder: string): Boolean;
 
   var
     log_file: TStrings;
@@ -297,6 +299,52 @@ begin
   end
   else
     Result := 'Image Size not same';
+end;
+
+function FormatFileSize(nSize: integer): String;
+begin
+  if nSize > 1073741824 then
+    Result := FormatFloat('###,##0.00G', nSize / 1073741824)
+  else if nSize > 1048576 then
+    Result := FormatFloat('###,##0.00M', nSize /1048576)
+  else if nSize > 1024 then
+    Result := FormatFloat('###,##00K', nSize / 1024)
+  else
+    Result := FormatFloat('###,#0B', nSize);
+  if Length(Result) > 2 then
+    if Result[1] = '0' then
+      Delete(Result, 1, 1);
+end;
+
+function iniFileIO(ini_filename: string; var extension, outfolder: string): Boolean;
+var
+  old_outfolder : String;
+  ini_file: TInifile;
+begin
+  if FileExists(ini_filename) then
+  begin
+    ini_file := TInifile.Create(ini_filename);
+    outfolder := ini_file.ReadString('setting', 'outfolder', outfolder);
+    extension := ini_file.ReadString('setting', 'extension', extension);
+    ini_file.Free;
+  end;
+
+  old_outfolder := outfolder;
+  while not DirectoryExists(outfolder) do
+  begin
+    if not CreateDir(outfolder) then
+      outfolder := InputBox('Input Application Output Folder, this folder must be empty',
+                            'Create output folder ' + outfolder + ' failed!', outfolder);
+  end;
+
+  if old_outfolder <> outfolder then
+  begin
+    ini_file := TInifile.Create(ini_filename);
+    ini_file.WriteString('setting', 'outfolder', outfolder);
+    ini_file.WriteString('setting', 'extension', extension);
+    ini_file.Free;
+  end;
+  Result := True;
 end;
 
 end.

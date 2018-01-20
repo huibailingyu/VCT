@@ -9,35 +9,40 @@ uses
 
 type
   TVideo = record
+    // stream basic info
     IsVideo: Boolean;
     FullFileName: String;
     FileName: String;
     FileNamePrefix: String;
-
-    FileSize: Integer;
     FileSizeFormat: String;
 
-    FileIndex: Integer;
-    FileStream: TFileStream;
-    StreamHeaderSize : Integer;
-    FrameHeaderSize : Integer;
-
-    FrameIndex: Integer;
-
+    // probe stream info
     FrameNumber: Integer;
     CodecName: String;
     PixFormat: String;
     BitRate: String;
     FrameRate: Real;
-    FrameWidth: String;
-    FrameHeight: String;
-    FileDuration: String;
+    FrameWidth: Integer;
+    FrameHeight: Integer;
+    FileDuration: Real;
 
+    // for .avi, .rgb mode
+    FileStream: TFileStream;
+    StreamHeaderSize : Integer;
+    FrameHeaderSize : Integer;
+
+    FileIndex: Integer;
+    FrameIndex: Integer;
+
+    // each frame info, default not use
     FrameInfo: TStrings;
 
-    FrameData: TBitMap;
+    BitMap: TBitMap;
 
     ReadDuration: Integer;
+
+    IssueFrameIndex: array of Integer;
+    FrameIndexList : array of Integer;
   end;
 
   TForm1 = class(TForm)
@@ -95,9 +100,14 @@ type
       Shift: TShiftState; X, Y: Integer);
   private
     { Private declarations }
+    video : array[1..2] of TVideo;
+
+    // setting parameters
     extension : String;
     outfolder: String;
-    scale_x : real;
+    use_segment_mode : Boolean;
+    use_image : Boolean;
+
     split1 : Integer;
     picture_number : Integer;
     mouse_status : Integer;
@@ -107,22 +117,14 @@ type
     show_w: Integer;
     show_h: Integer;
 
-    video : array[1..2] of TVideo;
-    issue_frm_inx: array[1..2] of array of Integer;
-
-    frame_index_list : array[1..2] of array of Integer;
-    use_segment_mode : Boolean;
-    use_image : Boolean;
-
     windows_size : integer;
     dlt_x : integer;
     dlt_y : integer;
     move_x : integer;
     move_y : integer;
-    //log_file: TStrings;
 
-    procedure VideoInit;
-    procedure VideoSetParameters(id : integer; filename: String);
+    procedure InitVideo(which: integer);
+    procedure ProbeVideoParameters(id : integer; filename: String);
 
     procedure ShowInformation;
     procedure InputFiles(Files: Tstrings);
@@ -162,7 +164,7 @@ begin
      Files.Add(Buffer);
   end;
   DragFinish(Msg.wParam);
-  VideoInit;
+  InitVideo(3);
   InputFiles(Files);
   Files.Free;
 end;
@@ -173,42 +175,58 @@ begin
   Result := 0;
 end;
 
-procedure TForm1.VideoInit;
+procedure TForm1.InitVideo(which: integer);
 var
- id : integer;
+ id, to_id : integer;
 begin
-  Timer1.Enabled := False;
-  Form1.Canvas.FillRect(Form1.ClientRect);
-  picture_number := 0;
-  mouse_status := 0;
+  if which >= 3 then
+  begin
+    windows_size := 0;
+    dlt_x := 0;
+    dlt_y := 0;
 
-  show_rect := Rect(0, 0, 0, 0);
-  show_w := 0;
-  show_h := 0;
+    split1 := -1;
+    if show = nil then
+      show := Tbitmap.Create;
+    log_file := nil;
 
-  for id:=1 to 2 do
+    picture_number := 0;
+    mouse_status := 0;
+
+    show_rect := Rect(0, 0, 0, 0);
+    show_w := 0;
+    show_h := 0;
+    to_id := 1;
+  end
+  else
+    to_id := 2;
+
+  for id:=2 downto to_id do
   begin
     video[id].IsVideo := False;
     video[id].FullFileName := '';
     video[id].FileName := '';
     video[id].FileNamePrefix := '';
-    video[id].FileSize := 0;
     video[id].FileSizeFormat := '';
     video[id].FrameIndex := 0;
     video[id].FrameNumber := 0;
     video[id].FrameRate := 0;
-    if video[id].FrameData <> nil then
-      video[id].FrameData.free;
-    video[id].FrameData := TBitmap.create;
+    if video[id].BitMap <> nil then
+      video[id].BitMap.free;
+    video[id].BitMap := TBitmap.create;
     video[id].ReadDuration := 2;
     video[id].FileIndex := -1;
     video[id].FileStream := nil;
     video[id].StreamHeaderSize := 0;
     video[id].FrameHeaderSize := 0;
+    if video[id].IssueFrameIndex <> nil then
+      video[id].IssueFrameIndex := nil;
+    if video[id].FrameIndexList <> nil then
+      video[id].FrameIndexList := nil;
   end;
 end;
 
-procedure TForm1.VideoSetParameters(id : integer; filename: String);
+procedure TForm1.ProbeVideoParameters(id : integer; filename: String);
 var
   cmd, tmp, segment_filename: String;
   output : TStrings;
@@ -223,8 +241,7 @@ begin
   if video[id].FileName = '' then
     video[id].FileName := ExtractFileName(filename);
   video[id].FileNamePrefix := outfolder + ChangeFileExt(video[id].FileName, '') + '_' + IntToStr(id) + '_';
-  video[id].FileSize := FileSizeByName(filename);
-  video[id].FileSizeFormat := FormatFileSize(video[id].FileSize);
+  video[id].FileSizeFormat := FormatFileSize( FileSizeByName(filename));
   video[id].FrameIndex := 0;
 
   if (Pos('.png', filename) > 0) OR (Pos('.jpg', filename) > 0) OR (Pos('.bmp', filename) > 0) then
@@ -241,22 +258,28 @@ begin
 
   Form1.Cursor := crHourGlass;
   cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,avg_frame_rate,bit_rate,duration';
-  output := utils.RunDOS(cmd, INFINITE);
+  output := RunDOS(cmd, INFINITE);
 
-  video[id].CodecName := output.Values['codec_name'];
-  video[id].PixFormat := output.Values['pix_fmt'];
-  video[id].FrameWidth := output.Values['width'];
-  video[id].FrameHeight := output.Values['height'];
-  video[id].FileDuration := output.Values['duration'];
-  if video[id].FileDuration <> 'N/A' then
-  begin
-    w := 1 + ceil(StrToFloat(video[id].FileDuration) / video[id].ReadDuration );
-    SetLength(issue_frm_inx[id], w);
-    for i := 0 to w do
-      issue_frm_inx[id][i] := -1;
+  try
+    video[id].CodecName := output.Values['codec_name'];
+    video[id].PixFormat := output.Values['pix_fmt'];
+    video[id].FrameWidth := StrToInt(output.Values['width']);
+    video[id].FrameHeight := StrToInt(output.Values['height']);
+    if output.Values['duration'] <> 'N/A' then
+    begin
+      video[id].FileDuration := StrToFloat(output.Values['duration']);
+      w := 1 + ceil(video[id].FileDuration / video[id].ReadDuration );
+      SetLength(video[id].IssueFrameIndex, w);
+      for i := 0 to w-1 do
+        video[id].IssueFrameIndex[i] := -1;
+    end;
+  except
+    ShowMessage('probe stream information error!');
+    exit;
   end;
-  show.Width := StrToInt(video[id].FrameWidth);
-  show.Height := StrToInt(video[id].FrameHeight);
+
+  show.Width := video[id].FrameWidth;
+  show.Height := video[id].FrameHeight;
 
   tmp := output.Values['r_frame_rate'];
   if tmp = 'N/A' then
@@ -296,9 +319,9 @@ begin
   if video[id].FrameNumber = -1 then
   begin
     try
-      if (video[id].FileDuration <> 'N/A') AND (video[id].FrameRate > 0) then
+      if (video[id].FileDuration > 0) AND (video[id].FrameRate > 0) then
       begin
-        video[id].FrameNumber := trunc(StrToFloat(video[id].FileDuration) * video[id].FrameRate);
+        video[id].FrameNumber := trunc(video[id].FileDuration * video[id].FrameRate);
       end;
     except
       video[id].FrameNumber := 1;
@@ -309,13 +332,13 @@ begin
   if use_Segment_mode then
   begin
     fps := video[id].FrameRate;
-    segment_duration := ceil(StrToFloat(video[id].FileDuration) / 20.0);
+    segment_duration := ceil(video[id].FileDuration / 20.0);
     if segment_duration < 2 then
        segment_duration := 2;
 
     time_lists := '2';
     d := 2;
-    while d < StrToFloat(video[id].FileDuration) do
+    while d < video[id].FileDuration do
     begin
       time_lists := time_lists + ',' + IntToSTr(segment_duration);
       d := d + segment_duration;
@@ -340,8 +363,8 @@ begin
       MyText.LoadFromFile(playlist);
       if (MyText <> nil) AND (MyText.Count > 0) then
       begin
-        SetLength(frame_index_list[id], MyText.Count+1);
-        frame_index_list[id][0] := 0;
+        SetLength(video[id].FrameIndexList, MyText.Count+1);
+        video[id].FrameIndexList[0] := 0;
         info := TStringList.Create;
         for i := 0 to MyText.Count - 1 do
         begin
@@ -361,7 +384,7 @@ begin
             end;
           //end;
 
-          frame_index_list[id][i+1] := frame_index_list[id][i] + d;
+          video[id].FrameIndexList[i+1] := video[id].FrameIndexList[i] + d;
         end;
         info.Free;
       end;
@@ -390,6 +413,12 @@ var
   info : string;
   str : TStrings;
 begin
+   if picture_number <= 0 then
+   begin
+     Caption := 'Please input...';
+     exit;
+   end;
+
    info := '';
    for id:= 1 to picture_number do
    begin
@@ -398,7 +427,7 @@ begin
      info := info + IntToStr(video[id].FrameIndex) + ' / ' + IntToStr(video[id].FrameNumber);
      info := info + ' , ' + IntToStr(video[id].FileIndex);
      info := info + ' , ' + video[id].FileName;
-     info := info + ' , ' + video[id].FrameWidth + 'x' + video[id].FrameHeight;
+     info := info + ' , ' + IntToStr(video[id].FrameWidth) + 'x' + IntToStr(video[id].FrameHeight);
      if video[id].IsVideo then
      begin
        info := info + '@' + FloatToStr(video[id].FrameRate) + 'fps';
@@ -416,7 +445,7 @@ begin
    end;
 
    if (ShowInformation1.Checked) AND (picture_number > 1) AND (Timer1.Enabled = False) Then
-     info := info + ' || ' + psnr(video[1].FrameData, video[2].FrameData);
+     info := info + ' || ' + psnr(video[1].BitMap, video[2].BitMap);
    caption := info;
 
    if picture_number = 1 then
@@ -426,30 +455,31 @@ begin
    if ProgressBar1.Max <> count then
      ProgressBar1.Max := count - 1;
    ProgressBar1.Position := video[1].FrameIndex;
-   Image1.Height := Round(StrToInt(video[1].FrameHeight) * Image1.Width / StrToInt(video[1].FrameWidth));
+   Image1.Height := Round(video[1].FrameHeight * Image1.Width / video[1].FrameWidth);
 end;
 
 procedure TForm1.ShowPicture;
 var
   pos : Integer;
   sou : TRect;
+  scale_x : Real;
 begin
   if (show_w <= 0) OR (show_h <= 0) then
-    ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 0);
+    ResetWindow(video[1].BitMap.Width, video[1].BitMap.Height, 0);
 
   if (windows_size = 2) then
   begin
-    sou.Left := (video[1].FrameData.Width - Form1.ClientWidth - dlt_x) div 2;
+    sou.Left := (video[1].BitMap.Width - Form1.ClientWidth - dlt_x) div 2;
     if sou.Left < 0 then
       sou.Left := 0
-    else if sou.Left > video[1].FrameData.Width - Form1.ClientWidth then
-      sou.Left := video[1].FrameData.Width - Form1.ClientWidth;
+    else if sou.Left > video[1].BitMap.Width - Form1.ClientWidth then
+      sou.Left := video[1].BitMap.Width - Form1.ClientWidth;
 
-    sou.Top := (video[1].FrameData.Height - Form1.ClientHeight - dlt_y) div 2;
+    sou.Top := (video[1].BitMap.Height - Form1.ClientHeight - dlt_y) div 2;
     if sou.Top < 0 then
       sou.Top := 0
-    else if sou.Top > video[1].FrameData.Height - Form1.ClientHeight then
-      sou.Top := video[1].FrameData.Height - Form1.ClientHeight;
+    else if sou.Top > video[1].BitMap.Height - Form1.ClientHeight then
+      sou.Top := video[1].BitMap.Height - Form1.ClientHeight;
 
     sou.Right := sou.Left + Form1.ClientWidth;
     sou.Bottom := sou.Top + Form1.ClientHeight;
@@ -460,22 +490,22 @@ begin
   if picture_number = 1 then
   begin
     if windows_size < 2 then
-      Form1.Canvas.StretchDraw(show_rect, video[1].FrameData)
+      Form1.Canvas.StretchDraw(show_rect, video[1].BitMap)
     else
-      Form1.Canvas.CopyRect(Form1.ClientRect, video[1].FrameData.Canvas, sou);
+      Form1.Canvas.CopyRect(Form1.ClientRect, video[1].BitMap.Canvas, sou);
   end
   else if picture_number = 2 then
   begin
 
-    scale_x := video[1].FrameData.Width / show_w;
+    scale_x := video[1].BitMap.Width / show_w;
     pos := Round(scale_x * (Split1 - show_rect.Left)) + sou.Left;
 
-    show.Canvas.CopyRect(Rect(0, 0, pos, video[1].FrameData.Height),
-                         video[1].FrameData.Canvas,
-                         Rect(0, 0, pos, video[1].FrameData.Height));
-    show.Canvas.CopyRect(Rect(pos, 0, video[2].FrameData.Width, video[2].FrameData.Height),
-                         video[2].FrameData.Canvas,
-                         Rect(pos, 0, video[2].FrameData.Width, video[2].FrameData.Height));
+    show.Canvas.CopyRect(Rect(0, 0, pos, video[1].BitMap.Height),
+                         video[1].BitMap.Canvas,
+                         Rect(0, 0, pos, video[1].BitMap.Height));
+    show.Canvas.CopyRect(Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height),
+                         video[2].BitMap.Canvas,
+                         Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height));
     if windows_size < 2 then
       Form1.Canvas.StretchDraw(show_rect, show)
     else
@@ -561,7 +591,7 @@ begin
     Form1.Canvas.FillRect(Form1.ClientRect);
     changed := True;
   end
-  else if (windows_size = 1) AND (video[1].FrameData.Width > 0) then  // max
+  else if (windows_size = 1) AND (video[1].BitMap.Width > 0) then  // max
   begin
     Form1.Width := Screen.Width;
     Form1.Height := Screen.Height;
@@ -570,22 +600,22 @@ begin
     Form1.Canvas.FillRect(Form1.ClientRect);
     changed := True;
   end
-  else if (windows_size = 2) AND (video[1].FrameData.Width > 0) then  // original
+  else if (windows_size = 2) AND (video[1].BitMap.Width > 0) then  // original
   begin
     x := Form1.Width - Form1.ClientWidth;
     y := Form1.Height - Form1.ClientHeight;
-    if (Screen.Width - x > video[1].FrameData.Width) AND
-       (Screen.Height - y > video[1].FrameData.Height) then
+    if (Screen.Width - x > video[1].BitMap.Width) AND
+       (Screen.Height - y > video[1].BitMap.Height) then
     begin
-      Form1.ClientWidth := video[1].FrameData.Width;
-      Form1.ClientHeight := video[1].FrameData.Height;
+      Form1.ClientWidth := video[1].BitMap.Width;
+      Form1.ClientHeight := video[1].BitMap.Height;
       Form1.Left := (Screen.Width - Form1.Width) div 2;
       Form1.Top := (Screen.Height - Form1.Height) div 2;
     end
     else
     begin
-      Form1.ClientWidth := video[1].FrameData.Width;
-      Form1.ClientHeight := video[1].FrameData.Height;
+      Form1.ClientWidth := video[1].BitMap.Width;
+      Form1.ClientHeight := video[1].BitMap.Height;
       x := (Screen.Width - Form1.Width) div 2;
       if x < 0 then
         x := 0;
@@ -599,64 +629,36 @@ begin
     changed := True;
   end;
 
-
   if changed AND (picture_number > 0) then
-    ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 0);
+    ResetWindow(video[1].BitMap.Width, video[1].BitMap.Height, 0);
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
-  ini_filename, old_outfolder : String;
-  ini_file: TInifile;
+  ini_filename : String;
 begin
-  windows_size := 0;
-  dlt_x := 0;
-  dlt_y := 0;
-  use_segment_mode := False;
   outfolder := 'E:\vct_temp_____output\';
   //extension := '.bmp';
   extension := '.png';
   ini_filename := ExtractFilePath(paramstr(0)) + 'setting.ini';
-  if FileExists(ini_filename) then
-  begin
-    ini_file := TInifile.Create(ini_filename);
-    outfolder := ini_file.ReadString('setting', 'outfolder', outfolder);
-    extension := ini_file.ReadString('setting', 'extension', extension);
-    ini_file.Free;
-  end;
+  iniFileIO(ini_filename, extension, outfolder);
 
+  if DirectoryExists(outfolder) then
+    DeleteDirectory(outfolder);
+
+  use_segment_mode := False;
   if (extension = '.avi') OR (extension = '.rgb') then
     use_image := False
   else
     use_image := True;
 
-  old_outfolder := outfolder;
-  while not DirectoryExists(outfolder) do
-  begin
-    if not CreateDir(outfolder) then
-      outfolder := InputBox('Input Application Output Folder, this folder must be empty',
-                            'Create output folder ' + outfolder + ' failed!', outfolder);
-  end;
-  if old_outfolder <> outfolder then
-  begin
-    ini_file := TInifile.Create(ini_filename);
-    ini_file.WriteString('setting', 'outfolder', outfolder);
-    ini_file.WriteString('setting', 'extension', extension);
-    ini_file.Free;
-  end;
-
-  if DirectoryExists(outfolder) then
-    DeleteDirectory(outfolder);
-
+  Timer1.Enabled := False;
   Form1.DoubleBuffered := True;
-  split1 := -1;
-  mouse_status := 0;
   Form1.Canvas.Pen.Width := 2;
   Form1.Canvas.Pen.Mode  := pmWhite;
-  if show = nil then
-    show := Tbitmap.Create;
-  VideoInit;
-  log_file := nil;
+  Form1.Canvas.FillRect(Form1.ClientRect);
+
+  InitVideo(3);
 
   DragAcceptFiles(Handle, True);
   ResetForm(0);
@@ -695,17 +697,17 @@ begin
   else if use_image then
   begin
     if use_segment_mode then
-      inx := frame_index_list[id][fid]
+      inx := video[id].FrameIndexList[fid]
     else
       inx := fid * ceil(video[id].FrameRate) * video[id].ReadDuration;
-    for i := 0 to High(issue_frm_inx[id]) do
+    for i := 0 to High(video[id].IssueFrameIndex) do
     begin
-      if issue_frm_inx[id][i] = -1 then
+      if video[id].IssueFrameIndex[i] = -1 then
       begin
-        issue_frm_inx[id][i] := inx;
+        video[id].IssueFrameIndex[i] := inx;
         break;
       end
-      else if issue_frm_inx[id][i] = inx then
+      else if video[id].IssueFrameIndex[i] = inx then
         exit;
     end;
     if extension = '.jpg' then
@@ -759,14 +761,14 @@ begin
   if pos >= video[id].FileStream.Size then
     exit;
 
-  if video[id].FrameData = nil then
-    video[id].FrameData := TBitMap.Create;
+  if video[id].BitMap = nil then
+    video[id].BitMap := TBitMap.Create;
 
-  if (video[id].FrameData.Width <> Width) OR (video[id].FrameData.Height <> Height) then
+  if (video[id].BitMap.Width <> Width) OR (video[id].BitMap.Height <> Height) then
   begin
-    video[id].FrameData.Width := Width;
-    video[id].FrameData.Height := Height;
-    video[id].FrameData.PixelFormat := pf24bit;
+    video[id].BitMap.Width := Width;
+    video[id].BitMap.Height := Height;
+    video[id].BitMap.PixelFormat := pf24bit;
   end;
 
   try
@@ -792,7 +794,7 @@ begin
 
     for y:=0 to Height-1 do
     begin
-      scanLine := video[id].FrameData.ScanLine[y];
+      scanLine := video[id].BitMap.ScanLine[y];
       video[id].FileStream.Read(scanLine[0], Width*3);
     end;
     Result := True;
@@ -826,8 +828,8 @@ begin
       FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
       if use_segment_mode then
       begin
-        for i := 0 to High(frame_index_list[id]) - 1 do
-          if (frame_index_list[id][i] <= inx[id]) and (inx[id] < frame_index_list[id][i+1]) then
+        for i := 0 to High(video[id].FrameIndexList) - 1 do
+          if (video[id].FrameIndexList[i] <= inx[id]) and (inx[id] < video[id].FrameIndexList[i+1]) then
             break;
         fid[id] := i;
       end
@@ -845,8 +847,8 @@ begin
       begin
         if use_segment_mode then
         begin
-          frame_pos := inx[id] - frame_index_list[id][fid[id]];
-          condition := fid[id] < High(frame_index_list[id]);
+          frame_pos := inx[id] - video[id].FrameIndexList[fid[id]];
+          condition := fid[id] < High(video[id].FrameIndexList);
         end
         else
         begin
@@ -861,7 +863,7 @@ begin
         begin
           if use_image then
             if use_segment_mode then
-              next_filename := video[id].FileNamePrefix + IntToStr(frame_index_list[id][fid[id]+1]) + extension
+              next_filename := video[id].FileNamePrefix + IntToStr(video[id].FrameIndexList[fid[id]+1]) + extension
             else
               next_filename := video[id].FileNamePrefix + IntToStr((fid[id] + 1) * FrameRate[id]) + extension
           else
@@ -900,7 +902,7 @@ begin
     begin
       if FileExists(filename[id]) then
       begin
-        if AssignImage(filename[id], video[id].FrameData) then
+        if AssignImage(filename[id], video[id].BitMap) then
         begin
           video[id].FileIndex := fid[id];
           video[id].FrameIndex := inx[id] + 1 + k;
@@ -929,8 +931,8 @@ begin
       continue;
     end;
 
-    FrameWidth := StrToInt(video[id].FrameWidth);
-    FrameHeight := StrToInt(video[id].FrameHeight);
+    FrameWidth := video[id].FrameWidth;
+    FrameHeight := video[id].FrameHeight;
     FrameSize := FrameWidth * FrameHeight * 3 + video[id].FrameHeaderSize;
     if FileReady(filename[id], FrameSize) then
     begin
@@ -958,7 +960,7 @@ begin
       else
       begin
         if use_segment_mode then
-          pos := (inx[id] - frame_index_list[id][fid[id]]) * FrameSize
+          pos := (inx[id] - video[id].FrameIndexList[fid[id]]) * FrameSize
         else
           pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
       end;
@@ -995,7 +997,7 @@ begin
 
   filename := ChangeFileExt(ExtractFileName(input_filename), '');
   FileExt := ExtractFileExt(input_filename);
-  VideoSetParameters(id, input_filename);
+  ProbeVideoParameters(id, input_filename);
   if (Pos('.mp4', FileExt) > 0) OR (Pos('.h264', FileExt) > 0) OR
             (Pos('.264', FileExt) > 0) OR (Pos('.flv', FileExt) > 0) OR
             (Pos('.avi', FileExt) > 0) then
@@ -1006,7 +1008,7 @@ begin
         cmd := 'ffmpeg.exe -i ' + video[id].FullFileName + ' -vcodec copy -an -y ' + filename;
         RunDOS(cmd, INFINITE);
         video[id].FileName := ExtractFileName(video[id].FullFileName);
-        VideoSetParameters(id, filename);
+        ProbeVideoParameters(id, filename);
       end
       else if Pos('.flv', FileExt) > 0 then
       begin
@@ -1025,7 +1027,7 @@ begin
             (Pos('.jpg', FileExt) > 0) OR
             (Pos('.bmp', FileExt) > 0) then
     begin
-      if AssignImage(input_filename, video[id].FrameData) then
+      if AssignImage(input_filename, video[id].BitMap) then
       begin
         video[id].FrameIndex := 1;
         video[id].FrameNumber := 1;
@@ -1040,17 +1042,17 @@ begin
 
     if (picture_number = id) then
     begin
-      ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 0);
+      ResetWindow(video[1].BitMap.Width, video[1].BitMap.Height, 0);
       OpenFile21.Enabled := True;
     end;
 
     Result := True;
     if (picture_number = 2) and (id = 2) then
     begin
-      if (video[2].FrameData.Width <> video[1].FrameData.Width) OR (video[2].FrameData.Height <> video[1].FrameData.Height) then
+      if (video[2].BitMap.Width <> video[1].BitMap.Width) OR (video[2].BitMap.Height <> video[1].BitMap.Height) then
       begin
-        ShowMessage('Two video frame size are not same file 1 is ' + IntToStr(video[1].FrameData.Width) + 'x' + IntToStr(video[1].FrameData.Height) +
-                                                    ', file 2 is ' + IntToStr(video[2].FrameData.Width) + 'x' + IntToStr(video[2].FrameData.Height));
+        ShowMessage('Two video frame size are not same file 1 is ' + IntToStr(video[1].BitMap.Width) + 'x' + IntToStr(video[1].BitMap.Height) +
+                                                    ', file 2 is ' + IntToStr(video[2].BitMap.Width) + 'x' + IntToStr(video[2].BitMap.Height));
         Result := False;
       end;
     end;
@@ -1194,10 +1196,10 @@ begin
   begin
     id := (Sender as TMenuItem).Tag;
     if (id = 1) OR (id = 2) then
-      video[id].FrameData.SaveToFile(SavePictureDialog1.FileName)
+      video[id].BitMap.SaveToFile(SavePictureDialog1.FileName)
     else
     begin
-      x := Round(Split1 * video[1].FrameData.Width / show_w);
+      x := Round(Split1 * video[1].BitMap.Width / show_w);
       show.Canvas.Pen.Color := clWhite;
       show.Canvas.Pen.Width := 2;
       show.Canvas.MoveTo(x, 0);
@@ -1291,13 +1293,13 @@ begin
     move_y := Y - move_y;
     dlt_x := dlt_x + move_x;
     dlt_y := dlt_y + move_y;
-    w := video[1].FrameData.Width - Form1.ClientWidth;
+    w := video[1].BitMap.Width - Form1.ClientWidth;
     if dlt_x > w then
        dlt_x := w
     else if dlt_x < -w then
        dlt_x := -w;
 
-    w := video[1].FrameData.Height - Form1.ClientHeight;
+    w := video[1].BitMap.Height - Form1.ClientHeight;
     if dlt_y > w then
        dlt_y := w
     else if dlt_y < -w then
@@ -1386,14 +1388,18 @@ begin
     end;
     VK_ESCAPE:
     begin
-      video[1].FullFileName := '';
-      video[2].FullFileName := '';
-      picture_number := 0;
-      Form1.WindowState := wsNormal;
-      Form1.Width := 658;
-      Form1.Height := 548;
-      Form1.Left := (Screen.Width - Form1.Width ) div 2;
-      Form1.Top := (Screen.Height - Form1.Height ) div 2;
+      if picture_number = 2 then
+      begin
+        initvideo(2);
+        picture_number := 1;
+        opened := True;
+      end
+      else if picture_number = 1 then
+      begin
+        initvideo(3);
+        caption := 'Please input...';
+        ResetForm(0);
+      end;
     end;
   end;
 
@@ -1426,13 +1432,13 @@ begin
       opened := True;
     end;
 
-    w := video[1].FrameData.Width - Form1.ClientWidth;
+    w := video[1].BitMap.Width - Form1.ClientWidth;
     if dlt_x > w then
        dlt_x := w
     else if dlt_x < -w then
        dlt_x := -w;
 
-    w := video[1].FrameData.Height - Form1.ClientHeight;
+    w := video[1].BitMap.Height - Form1.ClientHeight;
     if dlt_y > w then
        dlt_y := w
     else if dlt_y < -w then
@@ -1512,7 +1518,7 @@ begin
       Image1.Width := 256
     else
       Image1.Width := 128;
-    Image1.Height := Round(StrToInt(video[1].FrameHeight) * Image1.Width / StrToInt(video[1].FrameWidth));
+    Image1.Height := Round(video[1].FrameHeight * Image1.Width / video[1].FrameWidth);
 
     ShowPicture;
   end;
