@@ -262,7 +262,7 @@ begin
       video[id].FileDuration := StrToFloat(output.Values['duration']);
       w := 1 + ceil(video[id].FileDuration / video[id].ReadDuration );
       SetLength(video[id].issue_frm_inx, w);
-      for i := 0 to w do
+      for i := 0 to w-1 do
         video[id].issue_frm_inx[i] := -1;
     end;
   except
