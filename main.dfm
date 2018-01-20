@@ -26,6 +26,13 @@ object Form1: TForm1
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
+  object Image1: TImage
+    Left = 80
+    Top = 314
+    Width = 128
+    Height = 128
+    Stretch = True
+  end
   object ProgressBar1: TProgressBar
     Left = 64
     Top = 448
@@ -33,10 +40,8 @@ object Form1: TForm1
     Height = 16
     Cursor = crHandPoint
     BorderWidth = 3
-    Min = 1
     Max = 1
     ParentShowHint = False
-    Position = 1
     Smooth = True
     Style = pbstMarquee
     BarColor = clYellow

@@ -74,6 +74,7 @@ type
     ShowFrameInfo1: TMenuItem;
     ProgressBar1: TProgressBar;
     Timer2: TTimer;
+    Image1: TImage;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -612,8 +613,9 @@ begin
    else
      count := min(video[1].FrameNumber, video[2].FrameNumber);
    if ProgressBar1.Max <> count then
-     ProgressBar1.Max := count;
+     ProgressBar1.Max := count - 1;
    ProgressBar1.Position := video[1].FrameIndex;
+   Image1.Height := Round(StrToInt(video[1].FrameHeight) * Image1.Width / StrToInt(video[1].FrameWidth));
 end;
 
 procedure TForm1.ShowPicture;
@@ -788,10 +790,7 @@ begin
 
 
   if changed AND (picture_number > 0) then
-    //if input = 2 then
-    //  ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 1)
-    //else
-      ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 0);
+    ResetWindow(video[1].FrameData.Width, video[1].FrameData.Height, 0);
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -1361,8 +1360,23 @@ end;
 
 procedure TForm1.ProgressBar1MouseMove(Sender: TObject; Shift: TShiftState; X,
   Y: Integer);
+var
+  inx : Integer;
+  filename : string;
 begin
-  ProgressBar1.Hint := IntToStr(Round(X * ProgressBar1.Max / ProgressBar1.Width) );
+  inx := Round(X * ProgressBar1.Max / ProgressBar1.Width);
+  ProgressBar1.Hint := IntToStr(inx);
+
+  if True then
+  begin
+    filename := video[1].FileNamePrefix + IntToStr(inx) + extension;
+    if FileExists(filename) then
+    begin
+      Image1.Left := x;
+      AssignImage(filename, Image1.Picture.Bitmap);
+      Image1.Visible := True;
+    end;
+  end;
 end;
 
 procedure TForm1.ProgressBar1MouseUp(Sender: TObject; Button: TMouseButton;
@@ -1370,6 +1384,9 @@ procedure TForm1.ProgressBar1MouseUp(Sender: TObject; Button: TMouseButton;
 var
   inx : integer;
 begin
+  if Timer1.Enabled then
+    Timer1.Enabled := False;
+
   inx := Round(X * ProgressBar1.Max / ProgressBar1.Width);
   if LoadPicture(inx, inx, 2) then
   begin
@@ -1601,6 +1618,8 @@ end;
 
 procedure TForm1.FormMouseMove(Sender: TObject; Shift: TShiftState; X,
   Y: Integer);
+var
+  offset : Integer;
 begin
   if (abs(x - split1) < 3) AND (video[2].FrameNumber > 0) then
     Form1.Cursor := crHSplit
@@ -1617,9 +1636,11 @@ begin
 
   if (Y > Form1.Height - 64) AND (ProgressBar1.Max > 1) AND Not ProgressBar1.Visible then
   begin
-    ProgressBar1.Left := 64;
+    offset := Image1.Width div 2;
+    ProgressBar1.Left := offset;
     ProgressBar1.Top := Form1.ClientHeight - 40;
-    ProgressBar1.Width := Form1.ClientWidth - ProgressBar1.Left - 64;
+    ProgressBar1.Width := Form1.ClientWidth - ProgressBar1.Left - offset;
+    Image1.Top := ProgressBar1.Top - Image1.Height - 16;
     ProgressBar1.Visible := True;
   end;
 
@@ -1720,6 +1741,12 @@ begin
        dlt_y := -w;
   end;
 
+  if Timer1.Enabled AND ProgressBar1.Visible then
+  begin
+    ProgressBar1.Visible := False;
+    Image1.Visible := False;
+  end;
+
   if Timer1.Enabled AND ((Key <> VK_DOWN) AND (Key <> VK_SPACE))then
   begin
     Timer1.Enabled := False;
@@ -1760,40 +1787,37 @@ procedure TForm1.Timer2Timer(Sender: TObject);
 begin
   if ProgressBar1.Visible then
   begin
-    ProgressBar1.Visible := False;
     Timer2.Enabled := False;
+    ProgressBar1.Visible := False;
+    Image1.Visible := False;
   end;
 end;
 
 procedure TForm1.FormDblClick(Sender: TObject);
 begin
-  if ProgressBar1.Visible then
-    ProgressBar1.Visible := False;
-
-  windows_size := windows_size + 1;
-  if windows_size > 2 then
-    windows_size := 0;
-
-  ResetForm(windows_size);
-
   if picture_number > 0 then
-    ShowPicture;
-          {
-  if False AND (video[1].FrameNumber > 0) AND (video[1].FrameData.Width > Form1.ClientWidth) then
   begin
-    if show_w < video[1].FrameData.Width then
-      show_ex := video[1].FrameData.Width
+    windows_size := windows_size + 1;
+    if windows_size > 2 then
+      windows_size := 0;
+
+    ResetForm(windows_size);
+
+    if ProgressBar1.Visible then
+    begin
+      ProgressBar1.Visible := False;
+      Image1.Visible := False;
+    end;
+
+
+    if windows_size > 0 then
+      Image1.Width := 256
     else
-      show_ex := Form1.ClientWidth;
-    if show_h < video[1].FrameData.Height then
-      show_ey := video[1].FrameData.Height
-    else
-      show_ey := Form1.ClientHeight;
-    show_w := show_ex - show_sx;
-    show_h := show_ey - show_sy;
+      Image1.Width := 128;
+    Image1.Height := Round(StrToInt(video[1].FrameHeight) * Image1.Width / StrToInt(video[1].FrameWidth));
+
     ShowPicture;
   end;
-  }
 end;
 
 end.
