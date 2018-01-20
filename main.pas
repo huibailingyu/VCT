@@ -123,7 +123,7 @@ type
     move_x : integer;
     move_y : integer;
 
-    procedure InitVideo;
+    procedure InitVideo(which: integer);
     procedure ProbeVideoParameters(id : integer; filename: String);
 
     procedure ShowInformation;
@@ -164,7 +164,7 @@ begin
      Files.Add(Buffer);
   end;
   DragFinish(Msg.wParam);
-  InitVideo;
+  InitVideo(3);
   InputFiles(Files);
   Files.Free;
 end;
@@ -175,29 +175,33 @@ begin
   Result := 0;
 end;
 
-procedure TForm1.InitVideo;
+procedure TForm1.InitVideo(which: integer);
 var
- id : integer;
+ id, to_id : integer;
 begin
-  windows_size := 0;
-  dlt_x := 0;
-  dlt_y := 0;
+  if which >= 3 then
+  begin
+    windows_size := 0;
+    dlt_x := 0;
+    dlt_y := 0;
 
-  split1 := -1;
-  if show = nil then
-    show := Tbitmap.Create;
-  log_file := nil;
+    split1 := -1;
+    if show = nil then
+      show := Tbitmap.Create;
+    log_file := nil;
 
-  Timer1.Enabled := False;
-  Form1.Canvas.FillRect(Form1.ClientRect);
-  picture_number := 0;
-  mouse_status := 0;
+    picture_number := 0;
+    mouse_status := 0;
 
-  show_rect := Rect(0, 0, 0, 0);
-  show_w := 0;
-  show_h := 0;
+    show_rect := Rect(0, 0, 0, 0);
+    show_w := 0;
+    show_h := 0;
+    to_id := 1;
+  end
+  else
+    to_id := 2;
 
-  for id:=1 to 2 do
+  for id:=2 downto to_id do
   begin
     video[id].IsVideo := False;
     video[id].FullFileName := '';
@@ -409,6 +413,12 @@ var
   info : string;
   str : TStrings;
 begin
+   if picture_number <= 0 then
+   begin
+     Caption := 'Please input...';
+     exit;
+   end;
+
    info := '';
    for id:= 1 to picture_number do
    begin
@@ -668,7 +678,7 @@ begin
   Form1.Canvas.Pen.Width := 2;
   Form1.Canvas.Pen.Mode  := pmWhite;
 
-  InitVideo;
+  InitVideo(3);
 
   DragAcceptFiles(Handle, True);
   ResetForm(0);
@@ -1398,14 +1408,18 @@ begin
     end;
     VK_ESCAPE:
     begin
-      video[1].FullFileName := '';
-      video[2].FullFileName := '';
-      picture_number := 0;
-      Form1.WindowState := wsNormal;
-      Form1.Width := 658;
-      Form1.Height := 548;
-      Form1.Left := (Screen.Width - Form1.Width ) div 2;
-      Form1.Top := (Screen.Height - Form1.Height ) div 2;
+      if picture_number = 2 then
+      begin
+        initvideo(2);
+        picture_number := 1;
+        opened := True;
+      end
+      else if picture_number = 1 then
+      begin
+        initvideo(3);
+        caption := 'Please input...';
+        ResetForm(0);
+      end;
     end;
   end;
 
