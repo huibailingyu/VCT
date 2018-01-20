@@ -41,8 +41,8 @@ type
 
     ReadDuration: Integer;
 
-    issue_frm_inx: array of Integer;
-    frame_index_list : array of Integer;
+    IssueFrameIndex: array of Integer;
+    FrameIndexList : array of Integer;
   end;
 
   TForm1 = class(TForm)
@@ -215,6 +215,10 @@ begin
     video[id].FileStream := nil;
     video[id].StreamHeaderSize := 0;
     video[id].FrameHeaderSize := 0;
+    if video[id].IssueFrameIndex <> nil then
+      video[id].IssueFrameIndex := nil;
+    if video[id].FrameIndexList <> nil then
+      video[id].FrameIndexList := nil;
   end;
 end;
 
@@ -250,7 +254,7 @@ begin
 
   Form1.Cursor := crHourGlass;
   cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,avg_frame_rate,bit_rate,duration';
-  output := utils.RunDOS(cmd, INFINITE);
+  output := RunDOS(cmd, INFINITE);
 
   try
     video[id].CodecName := output.Values['codec_name'];
@@ -261,9 +265,9 @@ begin
     begin
       video[id].FileDuration := StrToFloat(output.Values['duration']);
       w := 1 + ceil(video[id].FileDuration / video[id].ReadDuration );
-      SetLength(video[id].issue_frm_inx, w);
+      SetLength(video[id].IssueFrameIndex, w);
       for i := 0 to w-1 do
-        video[id].issue_frm_inx[i] := -1;
+        video[id].IssueFrameIndex[i] := -1;
     end;
   except
     ShowMessage('probe stream information error!');
@@ -355,8 +359,8 @@ begin
       MyText.LoadFromFile(playlist);
       if (MyText <> nil) AND (MyText.Count > 0) then
       begin
-        SetLength(video[id].frame_index_list, MyText.Count+1);
-        video[id].frame_index_list[0] := 0;
+        SetLength(video[id].FrameIndexList, MyText.Count+1);
+        video[id].FrameIndexList[0] := 0;
         info := TStringList.Create;
         for i := 0 to MyText.Count - 1 do
         begin
@@ -376,7 +380,7 @@ begin
             end;
           //end;
 
-          video[id].frame_index_list[i+1] := video[id].frame_index_list[i] + d;
+          video[id].FrameIndexList[i+1] := video[id].FrameIndexList[i] + d;
         end;
         info.Free;
       end;
@@ -703,17 +707,17 @@ begin
   else if use_image then
   begin
     if use_segment_mode then
-      inx := video[id].frame_index_list[fid]
+      inx := video[id].FrameIndexList[fid]
     else
       inx := fid * ceil(video[id].FrameRate) * video[id].ReadDuration;
-    for i := 0 to High(video[id].issue_frm_inx) do
+    for i := 0 to High(video[id].IssueFrameIndex) do
     begin
-      if video[id].issue_frm_inx[i] = -1 then
+      if video[id].IssueFrameIndex[i] = -1 then
       begin
-        video[id].issue_frm_inx[i] := inx;
+        video[id].IssueFrameIndex[i] := inx;
         break;
       end
-      else if video[id].issue_frm_inx[i] = inx then
+      else if video[id].IssueFrameIndex[i] = inx then
         exit;
     end;
     if extension = '.jpg' then
@@ -834,8 +838,8 @@ begin
       FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
       if use_segment_mode then
       begin
-        for i := 0 to High(video[id].frame_index_list) - 1 do
-          if (video[id].frame_index_list[i] <= inx[id]) and (inx[id] < video[id].frame_index_list[i+1]) then
+        for i := 0 to High(video[id].FrameIndexList) - 1 do
+          if (video[id].FrameIndexList[i] <= inx[id]) and (inx[id] < video[id].FrameIndexList[i+1]) then
             break;
         fid[id] := i;
       end
@@ -853,8 +857,8 @@ begin
       begin
         if use_segment_mode then
         begin
-          frame_pos := inx[id] - video[id].frame_index_list[fid[id]];
-          condition := fid[id] < High(video[id].frame_index_list);
+          frame_pos := inx[id] - video[id].FrameIndexList[fid[id]];
+          condition := fid[id] < High(video[id].FrameIndexList);
         end
         else
         begin
@@ -869,7 +873,7 @@ begin
         begin
           if use_image then
             if use_segment_mode then
-              next_filename := video[id].FileNamePrefix + IntToStr(video[id].frame_index_list[fid[id]+1]) + extension
+              next_filename := video[id].FileNamePrefix + IntToStr(video[id].FrameIndexList[fid[id]+1]) + extension
             else
               next_filename := video[id].FileNamePrefix + IntToStr((fid[id] + 1) * FrameRate[id]) + extension
           else
@@ -966,7 +970,7 @@ begin
       else
       begin
         if use_segment_mode then
-          pos := (inx[id] - video[id].frame_index_list[fid[id]]) * FrameSize
+          pos := (inx[id] - video[id].FrameIndexList[fid[id]]) * FrameSize
         else
           pos := (inx[id] - fid[id] * FrameRate[id]) * FrameSize;
       end;
