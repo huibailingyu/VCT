@@ -58,13 +58,7 @@ object Form1: TForm1
     Top = 24
     object OpenFile11: TMenuItem
       Tag = 1
-      Caption = 'Open File 1'
-      OnClick = OpenFile11Click
-    end
-    object OpenFile21: TMenuItem
-      Tag = 2
-      Caption = 'Open File 2'
-      Enabled = False
+      Caption = 'Open Files'
       OnClick = OpenFile11Click
     end
     object N1: TMenuItem

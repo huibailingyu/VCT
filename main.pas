@@ -48,7 +48,6 @@ type
   TForm1 = class(TForm)
     PopupMenu1: TPopupMenu;
     OpenFile11: TMenuItem;
-    OpenFile21: TMenuItem;
     N1: TMenuItem;
     GoToFrame1: TMenuItem;
     N2: TMenuItem;
@@ -1044,10 +1043,7 @@ begin
     end;
 
     if (picture_number = id) then
-    begin
       ResetWindow(video[1].BitMap.Width, video[1].BitMap.Height, 0);
-      OpenFile21.Enabled := True;
-    end;
 
     Result := True;
     if (picture_number = 2) and (id = 2) then
@@ -1131,39 +1127,11 @@ begin
 end;
 
 procedure TForm1.OpenFile11Click(Sender: TObject);
-var
-  id : Integer;
-  is_open : Boolean;
 begin
-  id := (Sender as TMenuItem).tag;
   if OpenDialog1.Execute then
   begin
-    if Form1.WindowState <> wsMaximized then
-      Form1.WindowState := wsMaximized;
-    Caption := 'Waiting...';
-    if OpenDialog1.Files.Count > 1 then
-      picture_number := 2
-    else
-      picture_number := 1;
-
-    if id = 1 then
-    begin
-      is_open := OpenPicture(OpenDialog1.Files[0], id);
-      if is_open AND (OpenDialog1.Files.Count > 1) then
-      begin
-        id := 2;
-        is_open := OpenPicture(OpenDialog1.Files[1], id);
-      end;
-    end
-    else
-      is_open := OpenPicture(OpenDialog1.FileName, id);
-
-    if is_open then
-    begin
-      ShowInformation;
-      split1 := Form1.ClientWidth div 2;
-      ShowPicture;
-    end;
+    InitVideo(3);
+    InputFiles(OpenDialog1.Files);
   end;
 end;
 
