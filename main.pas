@@ -3,9 +3,9 @@ unit main;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, ExtDlgs, Menus, pngimage, StdCtrls, IdGlobal, ShellAPI,
-  ComCtrls, Math, Jpeg, IdGlobalProtocols, inifiles, utils;
+  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
+  Dialogs, ExtCtrls, ShellAPI, ExtDlgs, Menus, ComCtrls, Math,
+  IdGlobalProtocols, utils, ImgList;
 
 type
   TVideo = record

@@ -3,9 +3,8 @@ unit utils;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ExtCtrls, ExtDlgs, Menus, pngimage, StdCtrls, IdGlobal, ShellAPI,
-  ComCtrls, Math, Jpeg, IdGlobalProtocols, inifiles;
+  Windows, Messages, SysUtils, Classes, Graphics, Dialogs, pngimage, ShellAPI,
+  Math, Jpeg, IdGlobalProtocols, inifiles;
 
   procedure writelog(handle: Integer; command: string);
   function RunDOS(const CommandLine: string; timeout: DWORD): TStrings;
