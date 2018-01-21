@@ -637,6 +637,9 @@ procedure TForm1.FormCreate(Sender: TObject);
 var
   ini_filename : String;
 begin
+  if Not checkFFmpegTools('ffmpeg') or Not checkFFmpegTools('ffprobe')  then
+    close;
+
   outfolder := 'E:\vct_temp_____output\';
   //extension := '.bmp';
   extension := '.png';
@@ -1321,6 +1324,8 @@ procedure TForm1.FormMouseMove(Sender: TObject; Shift: TShiftState; X,
 var
   offset : Integer;
 begin
+  if picture_number = 0 then
+    exit;
   if (abs(x - split1) < 3) AND (video[2].FrameNumber > 0) then
     Form1.Cursor := crHSplit
   else if Form1.Cursor <> crDefault then

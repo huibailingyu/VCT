@@ -9,6 +9,7 @@ uses
 
   procedure writelog(handle: Integer; command: string);
   function RunDOS(const CommandLine: string; timeout: DWORD): TStrings;
+  function checkFFmpegTools(const ApplicationName: string): Boolean;
   function CheckInputFile(input_filename: String): Boolean;
   function AssignImage(filename: string; bmp: TBitMap):Boolean;
   function FileReady(filename:String; filesize: int64): Boolean;
@@ -64,6 +65,7 @@ var
   b: Boolean;
   sa: TSecurityAttributes;
   inS: THandleStream;
+  i : Integer;
 begin
   Result := TStringList.Create;
   Result.Text := '';
@@ -97,6 +99,19 @@ begin
 
   writelog(ProceInfo.hProcess, 'RunDOS: ' + CommandLine);
 
+  if Not b then
+  begin
+    for i := 0 to Length(CommandLine) - 1 do
+      if CommandLine[i] = ' ' then
+        break;
+    Result.Text := '[Error] ' + copy(CommandLine, 1, i) + ' NOT find.' + #13 + #10 +
+                   'Do not install or not in system path';
+    ShowMessage(Result.Text);
+    CloseHandle(HRead);
+    CloseHandle(HWrite);
+    exit;
+  end;
+
   CheckResult(b);
   if WAIT_TIMEOUT = WaitForSingleObject(ProceInfo.hProcess, timeout) then
   begin
@@ -113,6 +128,19 @@ begin
 
   CloseHandle(HRead);
   CloseHandle(HWrite);
+end;
+
+function checkFFmpegTools(const ApplicationName: string): Boolean;
+var
+  cmd : string;
+  output : TStrings;
+begin
+  Result := False;
+  cmd := ApplicationName + ' -version';
+  output := RunDOS(cmd, 30000);
+  if Pos('Error', output.Text) = 0 then
+    Result := True;
+  output.Free;
 end;
 
 // Remove whole Directory
