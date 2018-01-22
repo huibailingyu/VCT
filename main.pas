@@ -519,13 +519,10 @@ end;
 
 procedure TForm1.ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
 var
-  old_w : Integer;
   sx, sy, ex, ey, nWidth, nHeight: Integer;
 begin
   if VideoWidth*VideoHeight <= 0 then
     exit;
-
-  old_w := show_w;
 
   if windows_size = 2 then
   begin
@@ -569,10 +566,7 @@ begin
   show_w := ex - sx;
   show_h := ey - sy;
 
-  if (old_w > 0) AND (old_w <> show_w) then
-    Split1 := Round(1.0 * Split1 * show_w / old_w)
-  else
-    Split1 := Form1.ClientWidth div 2;
+  Split1 := Form1.ClientWidth div 2;
 end;
 
 procedure TForm1.ResetForm(windows_size: Integer);
