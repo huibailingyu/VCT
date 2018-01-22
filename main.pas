@@ -689,7 +689,7 @@ begin
   begin
     param := 'ffmpeg -an -ss ' + IntToStr(fid*video[id].ReadDuration) +
              ' -v quiet' +
-             ' -hwaccel dxva2' +
+             //' -hwaccel dxva2' +
              ' -i ' + video[id].FullFileName +
              ' -t ' + IntToStr(video[id].ReadDuration);
   end;
