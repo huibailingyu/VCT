@@ -628,7 +628,7 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 var
-  ini_filename : String;
+  ini_filename, segment_mode : String;
 begin
   if Not checkFFmpegTools('ffmpeg') or Not checkFFmpegTools('ffprobe')  then
     close;
@@ -636,13 +636,17 @@ begin
   outfolder := 'E:\vct_temp_____output\';
   //extension := '.bmp';
   extension := '.png';
+  segment_mode := '0';
   ini_filename := ExtractFilePath(paramstr(0)) + 'setting.ini';
-  iniFileIO(ini_filename, extension, outfolder);
+  iniFileIO(ini_filename, extension, outfolder, segment_mode);
 
   if DirectoryExists(outfolder) then
     DeleteDirectory(outfolder);
 
-  use_segment_mode := False;
+  if segment_mode = '1' then
+    use_segment_mode := True
+  else
+    use_segment_mode := False;
   if (extension = '.avi') OR (extension = '.rgb') then
     use_image := False
   else
