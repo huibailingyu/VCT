@@ -123,6 +123,16 @@ object Form1: TForm1
     object N5: TMenuItem
       Caption = '-'
     end
+    object Setting1: TMenuItem
+      Caption = 'Setting'
+      OnClick = Setting1Click
+    end
+    object About1: TMenuItem
+      Caption = 'About'
+    end
+    object N6: TMenuItem
+      Caption = '-'
+    end
     object Exit1: TMenuItem
       Caption = 'Exit'
       OnClick = Exit1Click

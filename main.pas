@@ -70,6 +70,9 @@ type
     ProgressBar1: TProgressBar;
     Timer2: TTimer;
     Image1: TImage;
+    Setting1: TMenuItem;
+    N6: TMenuItem;
+    About1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -97,14 +100,11 @@ type
       Y: Integer);
     procedure ProgressBar1MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure Setting1Click(Sender: TObject);
   private
     { Private declarations }
     video : array[1..2] of TVideo;
 
-    // setting parameters
-    extension : String;
-    outfolder: String;
-    use_segment_mode : Boolean;
     use_image : Boolean;
 
     split1 : Integer;
@@ -140,6 +140,10 @@ type
 
  public
     { Public declarations }
+    // setting parameters
+    extension : String;
+    outfolder: String;
+    use_segment_mode : Boolean;
     ChangeWindowMessageFilter:function(msg: UINT; dwFlag: DWORD): BOOL; stdcall;
   end;
 
@@ -147,6 +151,8 @@ var
   Form1: TForm1;
 
 implementation
+
+uses setting;
 
 {$R *.dfm}
 procedure TForm1.WMDROPFILES(var Msg: TMessage);
@@ -1176,6 +1182,13 @@ begin
       show.SaveToFile(SavePictureDialog1.FileName);
     end;
   end;
+end;
+
+procedure TForm1.Setting1Click(Sender: TObject);
+begin
+  Form2.Left := Form1.Left + (Form1.Width - Form2.Width ) div 2;
+  Form2.Top := Form1.Top + (Form1.Height - Form2.Height ) div 2;
+  Form2.show;
 end;
 
 procedure TForm1.Exit1Click(Sender: TObject);
