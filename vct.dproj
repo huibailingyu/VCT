@@ -48,6 +48,9 @@
 				<Form>Form1</Form>
 			</DCCReference>
 			<DCCReference Include="utils.pas"/>
+			<DCCReference Include="setting.pas">
+				<Form>Form2</Form>
+			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
