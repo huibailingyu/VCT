@@ -16,7 +16,7 @@ uses
   function psnr(bmp1, bmp2: TBitMap): string;
   function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
   function FormatFileSize(nSize: integer): String;
-  function iniFileIO(ini_filename: string; var extension, outfolder: string): Boolean;
+  function iniFileIO(ini_filename: string; var extension, outfolder, segment_mode: string): Boolean;
 
   var
     log_file: TStrings;
@@ -343,7 +343,7 @@ begin
       Delete(Result, 1, 1);
 end;
 
-function iniFileIO(ini_filename: string; var extension, outfolder: string): Boolean;
+function iniFileIO(ini_filename: string; var extension, outfolder, segment_mode: string): Boolean;
 var
   old_outfolder : String;
   ini_file: TInifile;
@@ -353,6 +353,7 @@ begin
     ini_file := TInifile.Create(ini_filename);
     outfolder := ini_file.ReadString('setting', 'outfolder', outfolder);
     extension := ini_file.ReadString('setting', 'extension', extension);
+    segment_mode := ini_file.ReadString('setting', 'use_segment_mode', extension);
     ini_file.Free;
   end;
 
@@ -369,6 +370,7 @@ begin
     ini_file := TInifile.Create(ini_filename);
     ini_file.WriteString('setting', 'outfolder', outfolder);
     ini_file.WriteString('setting', 'extension', extension);
+    ini_file.WriteString('setting', 'use_segment_mode', segment_mode);
     ini_file.Free;
   end;
   Result := True;
