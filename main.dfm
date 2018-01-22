@@ -66,6 +66,7 @@ object Form1: TForm1
     end
     object ShowFrameInfo1: TMenuItem
       Caption = 'Show Frame Info'
+      Enabled = False
     end
     object ShowInformation1: TMenuItem
       Caption = 'Show PSNR'
@@ -94,7 +95,7 @@ object Form1: TForm1
     end
     object SaveFrm1Frm21: TMenuItem
       Tag = 4
-      Caption = 'Save Frm1 & Frm2'
+      Caption = 'Save Frm1 Frm2'
       OnClick = SaveFrame1Click
     end
     object N3: TMenuItem

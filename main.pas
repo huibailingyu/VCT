@@ -1153,6 +1153,10 @@ begin
                     IntToStr(video[1].FrameIndex));
   try
     Vinx := StrToInt(input);
+    if Vinx < 1 then
+       Vinx := 1
+    else if Vinx >= Vmax then
+       Vinx := Vmax;
   except
     Vinx := video[1].FrameIndex;
   end;

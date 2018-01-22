@@ -53,7 +53,7 @@ begin
                                                   currentTime.wHour, currentTime.wMinute, currentTime.wSecond,
                                                   currentTime.wMilliseconds]);
   log_file.Add(datetime + ' : P' + IntToStr(handle) + '  ' + command);
-  log_file.SaveToFile('e:\log.file');
+  log_file.SaveToFile(ExtractFilePath(paramstr(0)) + 'log.file');
 end;
 
 function RunDOS(const CommandLine: string; timeout: DWORD): TStrings;
@@ -364,6 +364,9 @@ begin
       outfolder := InputBox('Input Application Output Folder, this folder must be empty',
                             'Create output folder ' + outfolder + ' failed!', outfolder);
   end;
+
+  if outfolder[Length(outfolder)] <> '\' then
+     outfolder := outfolder + '\';
 
   if old_outfolder <> outfolder then
   begin
