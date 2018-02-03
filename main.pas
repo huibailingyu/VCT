@@ -675,7 +675,6 @@ end;
 
 procedure TForm1.Button1Click(Sender: TObject);
 var
-  yuv_data : PByte;
   bmp : TBitMap;
 begin
   if OpenDialog1.Execute then
@@ -683,12 +682,9 @@ begin
     Form3.position := poMainFormCenter;
     if Form3.ShowModal = mrOK then
     begin
-
-      yuv_data := yuv_read_one_frame(OpenDialog1.FileName, 0, Form3.framesize);
-      bmp := yuv_show_one_frame(Form3.width, Form3.height, Form3.stride, Form3.pix_fmt, yuv_data);
+      bmp := Form3.get_yuv_frame(OpenDialog1.FileName, 0);
       Image2.Picture.Bitmap.Assign(bmp);
       bmp.Free;
-      FreeMem(yuv_data);
     end;
    end;
 end;
