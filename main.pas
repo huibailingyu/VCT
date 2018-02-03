@@ -556,16 +556,17 @@ begin
   end
   else if picture_number = 2 then
   begin
-
     scale_x := video[1].BitMap.Width / show_w;
     pos := Round(scale_x * (Split1 - show_rect.Left)) + sou.Left;
 
     show.Canvas.CopyRect(Rect(0, 0, pos, video[1].BitMap.Height),
                          video[1].BitMap.Canvas,
                          Rect(0, 0, pos, video[1].BitMap.Height));
+
     show.Canvas.CopyRect(Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height),
                          video[2].BitMap.Canvas,
                          Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height));
+
     if windows_size < 2 then
       Form1.Canvas.StretchDraw(show_rect, show)
     else
@@ -887,6 +888,7 @@ begin
        (inx[id] <> video[id].FrameIndex) then
     begin
       inx[id] := inx[id] - 1;
+
       if video[id].input_yuv then
       begin
         bmp := Form3.get_yuv_frame(video[id].FullFileName, id, inx[id]);
@@ -894,6 +896,7 @@ begin
         begin
           video[id].BitMap.Assign(bmp);
           video[id].FrameIndex := inx[id] + 1;
+          bmp.Free;
           Result := True;
         end;
         if id = picture_number then
@@ -1065,6 +1068,7 @@ function TForm1.OpenPicture(input_filename: String; id: Integer): Boolean;
 var
   FileExt : String;
   filename, cmd: String;
+  bmp : TBitMap;
 begin
   if Not utils.CheckInputFile(input_filename) then
   begin
@@ -1112,8 +1116,13 @@ begin
     end
     else if (Pos('.yuv', FileExt) > 0) then
     begin
-      video[id].BitMap.Assign(Form3.get_yuv_frame(input_filename, id, 0));
-      video[id].FrameIndex := 1;
+      bmp := Form3.get_yuv_frame(input_filename, id, 0);
+      if bmp <> nil then
+      begin
+        video[id].BitMap.Assign(bmp);
+        video[id].FrameIndex := 1;
+        bmp.Free;
+      end;
     end
     else
     begin
@@ -1164,6 +1173,7 @@ begin
       Image1.Left := x;
       Image1.Picture.Bitmap.Assign(bmp);
       Image1.Visible := True;
+      bmp.Free;
     end;
   end;
 end;
@@ -1294,10 +1304,11 @@ begin
     begin
       if video[id].input_yuv then
         begin
-          bmp := Form3.get_yuv_frame(video[id].FullFileName, id, video[id].FrameIndex-1);
+          bmp := Form3.get_current_frame(id);
           if bmp <> nil then
           begin
             video[id].BitMap.Assign(bmp);
+            bmp.Free;
             opened := True;
           end;
         end;
@@ -1325,6 +1336,7 @@ begin
         if bmp <> nil then
         begin
           video[id].BitMap.Assign(bmp);
+          bmp.Free;
           opened := True;
         end;
       end;
