@@ -83,6 +83,24 @@ object Form1: TForm1
     object N2: TMenuItem
       Caption = '-'
     end
+    object SaveFrame1: TMenuItem
+      Caption = 'Save Frame'
+      object SaveFrame11: TMenuItem
+        Tag = 1
+        Caption = 'Save Frame 1'
+        OnClick = SaveFrame1Click
+      end
+      object SaveFrame21: TMenuItem
+        Tag = 2
+        Caption = 'Save Frame 2'
+        OnClick = SaveFrame1Click
+      end
+      object SaveFrm1Frm21: TMenuItem
+        Tag = 4
+        Caption = 'Save Frm1 Frm2'
+        OnClick = SaveFrame1Click
+      end
+    end
     object YUVSetting1: TMenuItem
       Caption = 'YUV Setting'
       object DisplayY1: TMenuItem
@@ -124,9 +142,6 @@ object Form1: TForm1
         OnClick = ChangePixelFormat1Click
       end
     end
-    object N7: TMenuItem
-      Caption = '-'
-    end
     object Differentmode1: TMenuItem
       Caption = 'Different mode'
       object None1: TMenuItem
@@ -165,46 +180,28 @@ object Form1: TForm1
         OnClick = None1Click
       end
     end
-    object N9: TMenuItem
-      Caption = '-'
-    end
-    object SaveFrame1: TMenuItem
-      Tag = 1
-      Caption = 'Save Frame 1'
-      OnClick = SaveFrame1Click
-    end
-    object SaveFrame21: TMenuItem
-      Tag = 2
-      Caption = 'Save Frame 2'
-      OnClick = SaveFrame1Click
-    end
-    object SaveFrm1Frm21: TMenuItem
-      Tag = 4
-      Caption = 'Save Frm1 Frm2'
-      OnClick = SaveFrame1Click
-    end
-    object N3: TMenuItem
-      Caption = '-'
-    end
-    object Frame12: TMenuItem
-      Tag = -1
-      Caption = 'Frame1 --'
-      OnClick = Frame12Click
-    end
-    object Frame11: TMenuItem
-      Tag = 1
-      Caption = 'Frame1 ++'
-      OnClick = Frame12Click
-    end
-    object Frame21: TMenuItem
-      Tag = -1
-      Caption = 'Frame2 --'
-      OnClick = Frame21Click
-    end
-    object Frame22: TMenuItem
-      Tag = 1
-      Caption = 'Frame2 ++'
-      OnClick = Frame21Click
+    object Justify1: TMenuItem
+      Caption = 'Justify'
+      object Frame12: TMenuItem
+        Tag = -1
+        Caption = 'Frame1 --'
+        OnClick = Frame12Click
+      end
+      object Frame11: TMenuItem
+        Tag = 1
+        Caption = 'Frame1 ++'
+        OnClick = Frame12Click
+      end
+      object Frame21: TMenuItem
+        Tag = -1
+        Caption = 'Frame2 --'
+        OnClick = Frame21Click
+      end
+      object Frame22: TMenuItem
+        Tag = 1
+        Caption = 'Frame2 ++'
+        OnClick = Frame21Click
+      end
     end
     object N5: TMenuItem
       Caption = '-'

@@ -54,8 +54,6 @@ type
     N1: TMenuItem;
     GoToFrame1: TMenuItem;
     N2: TMenuItem;
-    SaveFrame1: TMenuItem;
-    N3: TMenuItem;
     Exit1: TMenuItem;
     N4: TMenuItem;
     ShowInformation1: TMenuItem;
@@ -76,7 +74,6 @@ type
     Setting1: TMenuItem;
     N6: TMenuItem;
     About1: TMenuItem;
-    N7: TMenuItem;
     YUVSetting1: TMenuItem;
     DisplayY1: TMenuItem;
     DisplayY2: TMenuItem;
@@ -84,13 +81,15 @@ type
     DisplayV1: TMenuItem;
     N8: TMenuItem;
     ChangePixelFormat1: TMenuItem;
-    N9: TMenuItem;
     Differentmode1: TMenuItem;
     RGBdiff1: TMenuItem;
     RGB1: TMenuItem;
     Ydifference1: TMenuItem;
     None1: TMenuItem;
     Ydifference2: TMenuItem;
+    Justify1: TMenuItem;
+    SaveFrame1: TMenuItem;
+    SaveFrame11: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
