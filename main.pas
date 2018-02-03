@@ -294,6 +294,8 @@ begin
           video[id].FrameNumber := FileSizeByName(filename) div Form3.framesize
         else
           video[id].FrameNumber := 1;
+        show.Width := video[id].FrameWidth;
+        show.Height := video[id].FrameHeight;
         Exit;
       end;
     end
