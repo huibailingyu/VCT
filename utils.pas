@@ -17,6 +17,7 @@ uses
   function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
   function FormatFileSize(nSize: integer): String;
   function iniFileIO(ini_filename: string; var extension, outfolder, segment_mode: string): Boolean;
+  procedure diffTwoImage(bmp1, bmp2: TBitMap; diff_mode, threshold : Integer; var bmp0: TBitmap);
   var
     log_file: TStrings;
 
@@ -394,6 +395,80 @@ begin
     ini_file.Free;
   end;
   Result := True;
+end;
+
+// bmp1 bmp2 Must have same image size
+procedure diffTwoImage(bmp1, bmp2: TBitMap; diff_mode, threshold : Integer; var bmp0: TBitmap);
+var
+  x, y : Integer;
+  y1, y2: Integer;
+  r, g, b : Real;
+  Pixels1: PRGBTripleArray;
+  Pixels2: PRGBTripleArray;
+  Pixels0: PRGBTripleArray;
+begin
+  if bmp0 = nil then
+    bmp0 := TBitmap.Create;
+
+  bmp0.PixelFormat := pf24bit;
+  bmp0.Width := bmp1.Width;
+  bmp0.Height := bmp1.Height;
+
+  if diff_mode < 1 then
+    diff_mode := 1
+  else if diff_mode > 4 then
+    diff_mode := 4;
+
+  r := 0.257;
+  g := 0.504;
+  b := 0.098;
+
+  for y := 0 to bmp1.Height - 1 do
+  begin
+    Pixels0 := bmp0.ScanLine[y];
+    Pixels1 := bmp1.ScanLine[y];
+    Pixels2 := bmp2.ScanLine[y];
+    for x := 0 to bmp1.Width - 1 do
+    begin
+      if diff_mode = 1 then
+      begin
+        Pixels0[x].rgbtGreen := 16;
+        Pixels0[x].rgbtBlue := 16;
+        if (abs(Pixels1[x].rgbtRed - Pixels2[x].rgbtRed) > threshold)  OR
+           (abs(Pixels1[x].rgbtGreen - Pixels2[x].rgbtGreen) > threshold) OR
+           (abs(Pixels1[x].rgbtBlue - Pixels2[x].rgbtBlue) > threshold) then
+          Pixels0[x].rgbtRed := 235
+        else
+          Pixels0[x].rgbtRed := 16;
+      end
+      else if diff_mode = 2 then
+      begin
+        Pixels0[x].rgbtRed := abs(Pixels1[x].rgbtRed - Pixels2[x].rgbtRed);
+        Pixels0[x].rgbtGreen := abs(Pixels1[x].rgbtGreen - Pixels2[x].rgbtGreen);
+        Pixels0[x].rgbtBlue := abs(Pixels1[x].rgbtBlue - Pixels2[x].rgbtBlue);
+      end
+      else if diff_mode = 3 then  // Y diff
+      begin
+        y1 := Round(r*Pixels1[x].rgbtRed + g*Pixels1[x].rgbtGreen + b*Pixels1[x].rgbtBlue + 0.5);
+        y2 := Round(r*Pixels2[x].rgbtRed + g*Pixels2[x].rgbtGreen + b*Pixels2[x].rgbtBlue + 0.5);
+        Pixels0[x].rgbtGreen := 16;
+        Pixels0[x].rgbtBlue := 16;
+        if abs(y1 - y2) > threshold then
+          Pixels0[x].rgbtRed := 235
+        else
+          Pixels0[x].rgbtRed := 16;
+      end
+      else if diff_mode = 4 then
+      begin
+        y1 := Round(r*Pixels1[x].rgbtRed + g*Pixels1[x].rgbtGreen + b*Pixels1[x].rgbtBlue + 0.5);
+        y2 := Round(r*Pixels2[x].rgbtRed + g*Pixels2[x].rgbtGreen + b*Pixels2[x].rgbtBlue + 0.5);
+        Pixels0[x].rgbtRed := abs(y1 - y2);
+        Pixels0[x].rgbtGreen := abs(y1 - y2);;
+        Pixels0[x].rgbtBlue := abs(y1 - y2);;
+      end;
+    end;
+  end;
+
 end;
 
 end.
