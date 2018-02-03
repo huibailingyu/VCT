@@ -84,6 +84,13 @@ type
     DisplayV1: TMenuItem;
     N8: TMenuItem;
     ChangePixelFormat1: TMenuItem;
+    N9: TMenuItem;
+    Differentmode1: TMenuItem;
+    RGBdiff1: TMenuItem;
+    RGB1: TMenuItem;
+    Ydifference1: TMenuItem;
+    None1: TMenuItem;
+    Ydifference2: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -114,6 +121,7 @@ type
     procedure Setting1Click(Sender: TObject);
     procedure DisplayY1Click(Sender: TObject);
     procedure ChangePixelFormat1Click(Sender: TObject);
+    procedure None1Click(Sender: TObject);
   private
     { Private declarations }
     video : array[1..2] of TVideo;
@@ -128,6 +136,10 @@ type
     show_rect: TRect;
     show_w: Integer;
     show_h: Integer;
+
+    diff_mode : Integer;
+    diff_threshold : integer;
+    diff : TBitmap;
 
     windows_size : integer;
     dlt_x : integer;
@@ -563,9 +575,16 @@ begin
                          video[1].BitMap.Canvas,
                          Rect(0, 0, pos, video[1].BitMap.Height));
 
-    show.Canvas.CopyRect(Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height),
-                         video[2].BitMap.Canvas,
-                         Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height));
+    if (diff <> nil) AND (diff_mode > 0) then
+    begin
+      show.Canvas.CopyRect(Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height),
+                           diff.Canvas,
+                           Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height));
+    end
+    else
+      show.Canvas.CopyRect(Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height),
+                           video[2].BitMap.Canvas,
+                           Rect(pos, 0, video[2].BitMap.Width, video[2].BitMap.Height));
 
     if windows_size < 2 then
       Form1.Canvas.StretchDraw(show_rect, show)
@@ -713,6 +732,9 @@ begin
     use_image := False
   else
     use_image := True;
+
+  diff_mode := 0;
+  diff_threshold := 8;
 
   Timer1.Enabled := False;
   Form1.DoubleBuffered := True;
@@ -900,7 +922,11 @@ begin
           Result := True;
         end;
         if id = picture_number then
-          Exit
+        begin
+          if (picture_number > 0) AND (Result = True) then
+            diffTwoImage(video[1].BitMap, video[2].BitMap, diff_mode, diff_threshold, diff);
+          Exit;
+        end
         else
           continue;
       end;
@@ -1062,6 +1088,28 @@ begin
       break;
     end;
   end;
+
+  if (picture_number > 0) AND (Result = True) then
+    diffTwoImage(video[1].BitMap, video[2].BitMap, diff_mode, diff_threshold, diff);
+end;
+
+procedure TForm1.None1Click(Sender: TObject);
+var
+  m : integer;
+begin
+  if picture_number > 1 then
+  begin
+    (Sender as TMenuItem).Checked := True;
+    diff_threshold := 8;
+    m := diff_mode;
+    diff_mode := (Sender as TMenuItem).Tag;
+    if m <> diff_mode then
+    begin
+      if diff_mode > 0 then
+        diffTwoImage(video[1].BitMap, video[2].BitMap, diff_mode, diff_threshold, diff);
+      ShowPicture;
+    end;
+  end;
 end;
 
 function TForm1.OpenPicture(input_filename: String; id: Integer): Boolean;
@@ -1142,7 +1190,8 @@ begin
         ShowMessage('Two video frame size are not same file 1 is ' + IntToStr(video[1].BitMap.Width) + 'x' + IntToStr(video[1].BitMap.Height) +
                                                     ', file 2 is ' + IntToStr(video[2].BitMap.Width) + 'x' + IntToStr(video[2].BitMap.Height));
         Result := False;
-      end;
+      end else if diff_mode > 0 then
+        diffTwoImage(video[1].BitMap, video[2].BitMap, diff_mode, diff_threshold, diff);
     end;
 end;
 
@@ -1606,6 +1655,8 @@ end;
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
   show.Free;
+  if diff <> nil then
+    diff.Free;
   if DirectoryExists(outfolder) then
     DeleteDirectory(outfolder);
 end;

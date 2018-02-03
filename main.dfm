@@ -127,6 +127,47 @@ object Form1: TForm1
     object N7: TMenuItem
       Caption = '-'
     end
+    object Differentmode1: TMenuItem
+      Caption = 'Different mode'
+      object None1: TMenuItem
+        Caption = 'None'
+        Checked = True
+        GroupIndex = 1
+        RadioItem = True
+        OnClick = None1Click
+      end
+      object RGBdiff1: TMenuItem
+        Tag = 1
+        Caption = 'RGB diff'
+        GroupIndex = 1
+        RadioItem = True
+        OnClick = None1Click
+      end
+      object RGB1: TMenuItem
+        Tag = 2
+        Caption = 'RGB subtract'
+        GroupIndex = 1
+        RadioItem = True
+        OnClick = None1Click
+      end
+      object Ydifference1: TMenuItem
+        Tag = 3
+        Caption = 'Y diff'
+        GroupIndex = 1
+        RadioItem = True
+        OnClick = None1Click
+      end
+      object Ydifference2: TMenuItem
+        Tag = 4
+        Caption = 'Y subtract'
+        GroupIndex = 1
+        RadioItem = True
+        OnClick = None1Click
+      end
+    end
+    object N9: TMenuItem
+      Caption = '-'
+    end
     object SaveFrame1: TMenuItem
       Tag = 1
       Caption = 'Save Frame 1'
