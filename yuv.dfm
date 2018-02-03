@@ -1,9 +1,11 @@
 object Form3: TForm3
   Left = 0
   Top = 0
+  BorderIcons = [biSystemMenu]
+  BorderStyle = bsDialog
   Caption = 'YUV Setting'
-  ClientHeight = 189
-  ClientWidth = 279
+  ClientHeight = 199
+  ClientWidth = 289
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -12,6 +14,7 @@ object Form3: TForm3
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -70,7 +73,7 @@ object Form3: TForm3
     Top = 148
     Width = 75
     Height = 25
-    Caption = 'Button1'
+    Caption = 'OK'
     ModalResult = 1
     TabOrder = 5
     OnClick = Button1Click
@@ -84,7 +87,8 @@ object Form3: TForm3
     MaxLength = 4
     TabOrder = 0
     Text = '    '
-    OnChange = MaskEdit1Change
+    OnKeyDown = MaskEdit1KeyDown
+    OnKeyUp = MaskEdit1KeyUp
   end
   object MaskEdit2: TMaskEdit
     Tag = 1
@@ -97,6 +101,7 @@ object Form3: TForm3
     TabOrder = 1
     Text = '    '
     OnChange = MaskEdit2Change
+    OnKeyUp = MaskEdit1KeyUp
   end
   object MaskEdit3: TMaskEdit
     Tag = 2

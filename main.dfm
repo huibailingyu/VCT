@@ -33,12 +33,6 @@ object Form1: TForm1
     Height = 128
     Stretch = True
   end
-  object Image2: TImage
-    Left = 248
-    Top = 192
-    Width = 210
-    Height = 217
-  end
   object ProgressBar1: TProgressBar
     Left = 64
     Top = 448
@@ -58,15 +52,6 @@ object Form1: TForm1
     Visible = False
     OnMouseMove = ProgressBar1MouseMove
     OnMouseUp = ProgressBar1MouseUp
-  end
-  object Button1: TButton
-    Left = 464
-    Top = 314
-    Width = 75
-    Height = 25
-    Caption = 'Button1'
-    TabOrder = 1
-    OnClick = Button1Click
   end
   object PopupMenu1: TPopupMenu
     Left = 240
@@ -96,6 +81,44 @@ object Form1: TForm1
       OnClick = GoToFrame1Click
     end
     object N2: TMenuItem
+      Caption = '-'
+    end
+    object YUVSetting1: TMenuItem
+      Caption = 'YUV Setting'
+      object DisplayY1: TMenuItem
+        Tag = 7
+        Caption = 'Display YUV'
+        Checked = True
+        RadioItem = True
+        OnClick = DisplayY1Click
+      end
+      object DisplayY2: TMenuItem
+        Tag = 1
+        Caption = 'Display Y'
+        RadioItem = True
+        OnClick = DisplayY1Click
+      end
+      object DisplayU1: TMenuItem
+        Tag = 2
+        Caption = 'Display U'
+        RadioItem = True
+        OnClick = DisplayY1Click
+      end
+      object DisplayV1: TMenuItem
+        Tag = 4
+        Caption = 'Display V'
+        RadioItem = True
+        OnClick = DisplayY1Click
+      end
+      object N8: TMenuItem
+        Caption = '-'
+      end
+      object ChangePixelFormat1: TMenuItem
+        Caption = 'Change Format'
+        OnClick = ChangePixelFormat1Click
+      end
+    end
+    object N7: TMenuItem
       Caption = '-'
     end
     object SaveFrame1: TMenuItem

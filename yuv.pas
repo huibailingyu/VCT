@@ -1,4 +1,4 @@
-unit yuvsetting;
+unit yuv;
 
 interface
 
@@ -26,7 +26,11 @@ type
     procedure MaskEdit2Change(Sender: TObject);
     procedure MaskEdit3Change(Sender: TObject);
     procedure MaskEdit4Change(Sender: TObject);
-    procedure MaskEdit1Change(Sender: TObject);
+    procedure MaskEdit1KeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure MaskEdit1KeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
   public
@@ -38,15 +42,19 @@ type
     ysize : integer;
     uvsize: integer;
     framesize : integer;
+    yuv_display_mode : integer;
+    yuv_data : array [1..2] of PByte;
     procedure guess_height;
     procedure calculate_value(linesize0, linesize1 : integer);
+    procedure paser_filename(filename: string);
 
     procedure yuv_get_y(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var luma: Byte);
     procedure yuv_get_uv(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
 
-    function yuv_read_one_frame(filename: string; frm_inx: integer; frame_size: integer) : PByte;
+    function yuv_read_one_frame(filename: string; frm_inx: integer; frame_size: integer) : Boolean;
     function yuv_show_one_frame(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
-    function get_yuv_frame(filename: string; frame_inx: integer) : TBitmap;
+    function get_yuv_frame(filename: string; id, frame_inx: integer) : TBitmap;
+    function get_current_frame(id: integer): TBitmap;
   end;
 
 var
@@ -89,19 +97,83 @@ begin
   width[2] := width[1];
   height[2] := height[1];
   stride[2] := stride[1];
+
+  ysize := height[0] * stride[0];
+  uvsize := height[1] * stride[1];
+  framesize := ysize + uvsize + uvsize;
 end;
 
 procedure TForm3.guess_height;
-//var
-  //i : integer;
-  //pair : array[0..4, 0..1] of integer = ((176, 144), (352, 288), (720, 576), (1920, 1080), (2048, 1024));
 begin
-  height[0] := 0;
-  //for I := 0 to 4 do
-  //  if width = pair[i,0] then
-  //    height := pair[i,1];
-  if height[0] = 0 then
-    height[0] := width[0];
+  if width[0] = 352 then
+    height[0] := 176
+  else if width[0] = 720 then
+    height[0] := 576
+  else if width[0] = 640 then
+    height[0] := 320
+  else if width[0] = 1024 then
+    height[0] := 512
+  else if width[0] = 1920 then
+    height[0] := 1080
+  else if width[0] = 2048 then
+    height[0] := 1024
+  else if width[0] = 4096 then
+    height[0] := 2048
+  else if width[0] < 2048 then
+    height[0] := width[0]
+  else
+    height[0] := width[0] div 2;
+end;
+
+procedure TForm3.paser_filename(filename: string);
+var
+  i, n, ww, hh : integer;
+  v: string;
+begin
+  n := 0;
+  v := '';
+  ww := 0;
+  hh := 0;
+  for I := 0 to length(filename) - 1 do
+  begin
+    if ('0' <= filename[i]) AND (filename[i] <= '9') then
+    begin
+      if ('0' = filename[i]) AND (n = 0) then
+         continue;
+      n := n + 1;
+      v := v + filename[i];
+    end
+    else if ((ww = 0) AND (filename[i] = 'x') OR (filename[i] = 'X') OR (filename[i] = '_') OR (filename[i] = ' ') OR
+             (ww > 0) ) then
+    begin
+      if n > 1 then
+      begin
+        if ww = 0 then
+        begin
+          ww := StrToInt(v);
+          n := 0;
+          v := '';
+        end
+        else
+        begin
+          hh := StrToInt(v);
+          break;
+        end;
+      end
+      else
+      begin
+        n := 0;
+        v := '';
+      end;
+    end;
+  end;
+
+  if (ww > 0) and (hh > 0) then
+  begin
+    width[0] := ww;
+    height[0] := hh;
+    calculate_value(ww, ww div 2);
+  end;
 end;
 
 procedure TForm3.Button1Click(Sender: TObject);
@@ -115,26 +187,43 @@ begin
   finally
 
   end;
+
   ysize := height[0] * stride[0];
   uvsize := height[1] * stride[1];
   framesize := ysize + uvsize + uvsize;
-  caption := IntToStr(width[0]) + 'x' + IntToStr(height[0]) + '  ' + IntToStr(stride[0]) + 'x' + IntToStr(stride[1])
+  if yuv_data[1] <> nil then
+     FreeMem(yuv_data[1]);
+  if yuv_data[2] <> nil then
+     FreeMem(yuv_data[2]);
+  yuv_data[1] := PByte(AllocMem(framesize + 1));
+  yuv_data[2] := PByte(AllocMem(framesize + 1));
 end;
 
 procedure TForm3.ComboBox1Change(Sender: TObject);
 begin
-    pix_fmt := ComboBox1.ItemIndex;
-    calculate_value(width[0], width[0] div 2);
-    MaskEdit3.Text := IntToStr(stride[0]);
-    MaskEdit4.Text := IntToStr(stride[1]);
+  pix_fmt := ComboBox1.ItemIndex;
+  calculate_value(width[0], width[0] div 2);
+  MaskEdit3.Text := IntToStr(stride[0]);
+  MaskEdit4.Text := IntToStr(stride[1]);
 end;
 
 procedure TForm3.FormCreate(Sender: TObject);
 begin
+  yuv_data[1] := nil;
+  yuv_data[2] := nil;
+  yuv_display_mode := YUV_YUV;
   width[0] := 720;
   height[0] := 360;
-  calculate_value(width[0], width[0] div 2);
   pix_fmt := YUV420p;
+  calculate_value(width[0], width[0] div 2);
+end;
+
+procedure TForm3.FormDestroy(Sender: TObject);
+begin
+  if yuv_data[1] <> nil then
+     FreeMem(yuv_data[1]);
+  if yuv_data[2] <> nil then
+     FreeMem(yuv_data[2]);
 end;
 
 procedure TForm3.FormShow(Sender: TObject);
@@ -146,7 +235,8 @@ begin
   MaskEdit4.Text := IntToStr(stride[1]);
 end;
 
-procedure TForm3.MaskEdit1Change(Sender: TObject);
+procedure TForm3.MaskEdit1KeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
 begin
   try
     if Trim(MaskEdit1.Text) <> '' then begin
@@ -158,6 +248,16 @@ begin
       MaskEdit4.Text := IntToStr(stride[1]);
     end;
   finally
+  end;
+end;
+
+procedure TForm3.MaskEdit1KeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = vk_Return then
+  begin
+    Button1Click(self);
+    ModalResult := mrOk;
   end;
 end;
 
@@ -180,25 +280,23 @@ begin
   stride[2] := stride[1];
 end;
 
-function TForm3.yuv_read_one_frame(filename: string; frm_inx: integer; frame_size: integer) : PByte;
+function TForm3.yuv_read_one_frame(filename: string; frm_inx: integer; frame_size: integer) : Boolean;
 var
   fp : THandle;
   len : integer;
 begin
-  Result := PByte(AllocMem(frame_size + 1));
-  if Result <> nil then begin
-    fp := FileOpen(filename, fmOpenRead);
-    if (fp <> invalid_handle_value) then begin
-      FileSeek(fp, 0, 0);
-      len := FileRead(fp, Result^, frame_size);
-      if (len > 0) AND (len < frame_size) then
-        FillMemory(@Result[len], frame_size - len, 0);
-      FileClose(fp);
-    end
-    else begin
-      FreeMem(Result);
-      Result := nil;
+  Result := False;
+  fp := FileOpen(filename, fmOpenRead);
+  if (fp <> invalid_handle_value) then begin
+    if FileSeek(fp, frm_inx*frame_size, 0) <> -1 then
+    begin
+      len := FileRead(fp, yuv_data^, frame_size);
+      if len = frame_size then
+        Result := True
+      else if (len > 0) AND (len < frame_size) then
+        FillMemory(@yuv_data[len], frame_size - len, 0);
     end;
+    FileClose(fp);
   end;
 end;
 
@@ -264,12 +362,40 @@ begin
       Pixels := Result.ScanLine[h];
       for w := 0 to Result.Width - 1 do
       begin
-        yuv_get_y(width, height, stride, pix_fmt, data, w, h, Y);
-        yuv_get_uv(width, height, stride, pix_fmt, data, w, h, U, V);
+        if (yuv_display_mode AND YUV_Y) > 0 then
+          yuv_get_y(width, height, stride, pix_fmt, data, w, h, Y);
+        if yuv_display_mode > YUV_Y then
+          yuv_get_uv(width, height, stride, pix_fmt, data, w, h, U, V)
+        else
+        begin
+          U := Y;
+          V := Y;
+        end;
 
-        R := Y + 1.403 * (V - 128) + 0.5;
-        G := Y - 0.343 * (U - 128) - 0.714 * (V - 128) + 0.5;
-        B := Y + 1.770 * (U - 128) + 0.5;
+        if yuv_display_mode = YUV_YUV then
+        begin
+          R := Y + 1.403 * (V - 128) + 0.5;
+          G := Y - 0.343 * (U - 128) - 0.714 * (V - 128) + 0.5;
+          B := Y + 1.770 * (U - 128) + 0.5;
+        end
+        else if yuv_display_mode = YUV_Y then
+        begin
+          R := Y;
+          G := Y;
+          B := Y;
+        end
+        else if yuv_display_mode = YUV_U then
+        begin
+          R := U;
+          G := U;
+          B := U;
+        end
+        else if yuv_display_mode = YUV_V then
+        begin
+          R := V;
+          G := V;
+          B := V;
+        end;
 
         if R > 255.0 then
           R := 255
@@ -293,13 +419,17 @@ begin
     end;
 end;
 
-function TForm3.get_yuv_frame(filename: string; frame_inx: integer) : TBitmap;
-var
-  yuv_data : PByte;
+function TForm3.get_yuv_frame(filename: string; id, frame_inx: integer): TBitmap;
 begin
-  yuv_data := yuv_read_one_frame(filename, frame_inx, framesize);
-  Result := yuv_show_one_frame(width, height, stride, pix_fmt, yuv_data);
-  FreeMem(yuv_data);
+  if yuv_read_one_frame(filename, frame_inx, framesize) then
+    Result := yuv_show_one_frame(width, height, stride, pix_fmt, yuv_data[id])
+  else
+    Result := nil;
+end;
+
+function TForm3.get_current_frame: TBitmap(id: integer);
+begin
+  Result := yuv_show_one_frame(width, height, stride, pix_fmt, yuv_data[id])
 end;
 
 end.
