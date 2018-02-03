@@ -17,7 +17,8 @@ uses
   function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
   function FormatFileSize(nSize: integer): String;
   function iniFileIO(ini_filename: string; var extension, outfolder, segment_mode: string): Boolean;
-
+  function yuv_read_one_frame(filename: string; frm_inx: integer; frame_size: integer) : PByte;
+  function yuv_show_one_frame(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
   var
     log_file: TStrings;
 
@@ -31,6 +32,11 @@ uses
   PRGBTripleArray = ^TRGBTripleArray;
   TRGBTripleArray = array[0..4095] of TRGBTriple;
 
+const
+YUV420p = 0;
+YUV400p = 1;
+NV12    = 2;
+YUV444p = 3;
 
 implementation
 
@@ -377,6 +383,128 @@ begin
     ini_file.Free;
   end;
   Result := True;
+end;
+
+function yuv_read_one_frame(filename: string; frm_inx: integer; frame_size: integer) : PByte;
+var
+  fp : THandle;
+  len : integer;
+begin
+  Result := PByte(AllocMem(frame_size + 1));
+  if Result <> nil then begin
+    fp := FileOpen(filename, fmOpenRead);
+    if (fp <> -1) then begin
+      FileSeek(fp, 0, 0);
+      len := FileRead(fp, Result^, frame_size);
+      if (len > 0) AND (len < frame_size) then
+        FillMemory(@Result[len], frame_size - len, 0);
+      FileClose(fp);
+    end
+    else begin
+      FreeMem(Result);
+      Result := nil;
+    end;
+  end;
+end;
+
+procedure yuv_get_y(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var luma: Byte);
+var
+  inx : integer;
+begin
+  if (0<=x) AND (x<width[0]) AND (0<=y) AND (y<height[0]) then begin
+    inx := y*stride[0] + x;
+    luma := data[inx];
+  end
+  else
+    luma := 0;
+end;
+
+procedure yuv_get_uv(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
+var
+  inx : integer;
+  ysize : integer;
+  uvsize : integer;
+begin
+  ysize := stride[0] * height[0];
+  uvsize := stride[1] * height[1];
+  if pix_fmt = YUV420p then begin
+     x := x div 2;
+     y := y div 2;
+  end else if pix_fmt = YUV400p then begin
+    x := -1;
+    y := -1;
+  end else if pix_fmt = NV12 then begin
+    y := y div 2;
+  end;
+
+  if (0<=x) AND (x<width[1]) AND (0<=y) AND (y<height[1]) then begin
+    inx := ysize + y*stride[1] + x;
+    u := data[inx];
+    if pix_fmt <> NV12 then
+      inx := inx + uvsize
+    else
+      inx := inx + 1;
+    v := data[inx];
+  end
+  else begin
+    u := 128;
+    v := 128;
+  end;
+end;
+
+function yuv_show_one_frame(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
+var
+  Y, U, V : Byte;
+  R, G, B : Real;
+  Pixels: PRGBTripleArray;
+  w, h : integer;
+begin
+  Result := TBitMap.Create;
+  Result.PixelFormat := pf24bit;
+  Result.Width := width[0];
+  Result.Height := height[0];
+
+  for h := 0 to Result.Height - 1 do
+    begin
+      Pixels := Result.ScanLine[h];
+      for w := 0 to Result.Width - 1 do
+      begin
+        yuv_get_y(width, height, stride, pix_fmt, data, w, h, Y);
+        yuv_get_uv(width, height, stride, pix_fmt, data, w, h, U, V);
+
+        R := Y + 1.403 * (V - 128) + 0.5;
+        G := Y - 0.343 * (U - 128) - 0.714 * (V - 128) + 0.5;
+        B := Y + 1.770 * (U - 128) + 0.5;
+
+        if R > 255.0 then
+          R := 255
+        else if R < 0.0 then
+          R := 0.0;
+
+        if G > 255.0 then
+          G := 255
+        else if G < 0.0 then
+          G := 0.0;
+
+        if B > 255.0 then
+          B := 255
+        else if B < 0.0 then
+          B := 0.0;
+
+        Pixels[w].rgbtRed   := Round(R);
+        Pixels[w].rgbtGreen := Round(G);
+        Pixels[w].rgbtBlue  := Round(B);
+      end;
+    end;
+
+    Result.SaveToFile('e:\tt.bmp');
+end;
+
+function get_yuv_frame(filename: string; frame_inx: integer) : TBitmap;
+var
+  yuv_data : PByte;
+begin
+  yuv_data := yuv_read_one_frame(filename, frame_inx, frame_size: integer) : PByte;
 end;
 
 end.

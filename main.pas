@@ -5,7 +5,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, ExtCtrls, ShellAPI, ExtDlgs, Menus, ComCtrls, Math,
-  IdGlobalProtocols, utils, ImgList;
+  IdGlobalProtocols, utils, ImgList, StdCtrls;
 
 type
   TVideo = record
@@ -73,6 +73,8 @@ type
     Setting1: TMenuItem;
     N6: TMenuItem;
     About1: TMenuItem;
+    Button1: TButton;
+    Image2: TImage;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -101,6 +103,7 @@ type
     procedure ProgressBar1MouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure Setting1Click(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     { Private declarations }
     video : array[1..2] of TVideo;
@@ -152,7 +155,7 @@ var
 
 implementation
 
-uses setting;
+uses setting, yuvsetting;
 
 {$R *.dfm}
 procedure TForm1.WMDROPFILES(var Msg: TMessage);
@@ -668,6 +671,26 @@ begin
 
   DragAcceptFiles(Handle, True);
   ResetForm(0);
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+var
+  yuv_data : PByte;
+  bmp : TBitMap;
+begin
+  if OpenDialog1.Execute then
+  begin
+    Form3.position := poMainFormCenter;
+    if Form3.ShowModal = mrOK then
+    begin
+
+      yuv_data := yuv_read_one_frame(OpenDialog1.FileName, 0, Form3.framesize);
+      bmp := yuv_show_one_frame(Form3.width, Form3.height, Form3.stride, Form3.pix_fmt, yuv_data);
+      Image2.Picture.Bitmap.Assign(bmp);
+      bmp.Free;
+      FreeMem(yuv_data);
+    end;
+   end;
 end;
 
 function TForm1.CallFFmpegDecode(id, fid:Integer; output_filename: String): THandle;

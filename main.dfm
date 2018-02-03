@@ -33,6 +33,12 @@ object Form1: TForm1
     Height = 128
     Stretch = True
   end
+  object Image2: TImage
+    Left = 248
+    Top = 192
+    Width = 210
+    Height = 217
+  end
   object ProgressBar1: TProgressBar
     Left = 64
     Top = 448
@@ -52,6 +58,15 @@ object Form1: TForm1
     Visible = False
     OnMouseMove = ProgressBar1MouseMove
     OnMouseUp = ProgressBar1MouseUp
+  end
+  object Button1: TButton
+    Left = 464
+    Top = 314
+    Width = 75
+    Height = 25
+    Caption = 'Button1'
+    TabOrder = 1
+    OnClick = Button1Click
   end
   object PopupMenu1: TPopupMenu
     Left = 240
@@ -141,11 +156,11 @@ object Form1: TForm1
   end
   object OpenDialog1: TOpenDialog
     Filter = 
-      'All (*.png;*.jpg;*.jpeg;*.bmp;*.mp4;*.flv;*.h264)|*.png;*.jpg;*.' +
-      'jpeg;*.bmp;*.mp4;*.flv;*.h264|Portable Network Graphics (*.png)|' +
-      '*.png|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.j' +
-      'peg|Bitmaps (*.bmp)|*.bmp|MP4 (*.mp4)|*.mp4|FLV (*.flv)|*.flv|H2' +
-      '64 (*.h264)|*.h264'
+      'All (*.png;*.jpg;*.jpeg;*.bmp;*.mp4;*.flv;*.h264; *.yuv)|*.png;*' +
+      '.jpg;*.jpeg;*.bmp;*.mp4;*.flv;*.h264; *.yuv|Portable Network Gra' +
+      'phics (*.png)|*.png|JPEG Image File (*.jpg)|*.jpg|JPEG Image Fil' +
+      'e (*.jpeg)|*.jpeg|Bitmaps (*.bmp)|*.bmp|MP4 (*.mp4)|*.mp4|FLV (*' +
+      '.flv)|*.flv|H264 (*.h264)|*.h264|YUV (*.yuv)|*.yuv'
     Options = [ofHideReadOnly, ofAllowMultiSelect, ofEnableSizing]
     Left = 192
     Top = 16
