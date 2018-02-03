@@ -5,7 +5,7 @@ uses
   main in 'main.pas' {Form1},
   utils in 'utils.pas',
   setting in 'setting.pas' {Form2},
-  yuvsetting in 'yuvsetting.pas' {Form3};
+  yuv in 'yuv.pas' {Form3};
 
 {$R *.res}
 
