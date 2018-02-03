@@ -36,6 +36,11 @@ YUV400p = 1;
 NV12    = 2;
 YUV444p = 3;
 
+YUV_Y = 1;
+YUV_U = 2;
+YUV_V = 4;
+YUV_YUV = 7;
+
 implementation
 
 procedure CheckResult(b: Boolean);
@@ -198,12 +203,19 @@ begin
           (Pos('.264', FileExt) > 0) OR (Pos('.flv', FileExt) > 0) OR
           (Pos('.avi', FileExt) > 0) OR (Pos('.ts', FileExt) > 0) OR
           (Pos('.bmp', FileExt) > 0) OR (Pos('.png', FileExt) > 0) OR
-          (Pos('.jpg', FileExt) > 0)
+          (Pos('.jpg', FileExt) > 0) OR (Pos('.yuv', FileExt) > 0)
           ) then
     Result := False
   else
   begin
     Result := False;
+    if (Pos('.yuv', FileExt) > 0) then
+    begin
+      if FileSizeByName(input_filename) > 0 then
+        Result := True;
+      Exit;
+    end;
+
     try
       cmd := 'ffprobe -i ' + input_filename + ' -select_streams v -show_entries stream=width,height';
       output := RunDOS(cmd, 3000);
@@ -214,6 +226,7 @@ begin
       Result := False;
     end;
   end;
+
   if Not Result then
     ShowMessage('Input file is not an available Video or Image file');
 end;

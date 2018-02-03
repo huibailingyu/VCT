@@ -89,32 +89,38 @@ object Form1: TForm1
         Tag = 7
         Caption = 'Display YUV'
         Checked = True
+        GroupIndex = 1
         RadioItem = True
         OnClick = DisplayY1Click
       end
       object DisplayY2: TMenuItem
         Tag = 1
         Caption = 'Display Y'
+        GroupIndex = 1
         RadioItem = True
         OnClick = DisplayY1Click
       end
       object DisplayU1: TMenuItem
         Tag = 2
         Caption = 'Display U'
+        GroupIndex = 1
         RadioItem = True
         OnClick = DisplayY1Click
       end
       object DisplayV1: TMenuItem
         Tag = 4
         Caption = 'Display V'
+        GroupIndex = 1
         RadioItem = True
         OnClick = DisplayY1Click
       end
       object N8: TMenuItem
         Caption = '-'
+        GroupIndex = 1
       end
       object ChangePixelFormat1: TMenuItem
         Caption = 'Change Format'
+        GroupIndex = 1
         OnClick = ChangePixelFormat1Click
       end
     end

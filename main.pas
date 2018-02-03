@@ -296,6 +296,21 @@ begin
           video[id].FrameNumber := 1;
         Exit;
       end;
+    end
+    else
+    begin
+      video[id].input_yuv := True;
+      video[id].CodecName := 'RawYUV';
+      video[id].PixFormat := video[1].PixFormat;
+      video[id].FrameWidth := video[1].FrameWidth;
+      video[id].FrameHeight := video[1].FrameHeight;
+      video[id].FrameRate := video[1].FrameRate;
+      video[id].BitRate := 'N/A' ;
+      if Form3.framesize > 0 then
+        video[id].FrameNumber := FileSizeByName(filename) div Form3.framesize
+      else
+        video[id].FrameNumber := 1;
+      Exit;
     end;
   end;
 
@@ -872,14 +887,17 @@ begin
       inx[id] := inx[id] - 1;
       if video[id].input_yuv then
       begin
-        bmp := Form3.get_yuv_frame(video[id].FullFileName, inx[id]);
+        bmp := Form3.get_yuv_frame(video[id].FullFileName, id, inx[id]);
         if bmp <> nil then
         begin
           video[id].BitMap.Assign(bmp);
           video[id].FrameIndex := inx[id] + 1;
           Result := True;
         end;
-        continue;
+        if id = picture_number then
+          Exit
+        else
+          continue;
       end;
 
       FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
@@ -1092,7 +1110,7 @@ begin
     end
     else if (Pos('.yuv', FileExt) > 0) then
     begin
-      video[id].BitMap.Assign(Form3.get_yuv_frame(input_filename, 0));
+      video[id].BitMap.Assign(Form3.get_yuv_frame(input_filename, id, 0));
       video[id].FrameIndex := 1;
     end
     else
@@ -1122,17 +1140,27 @@ procedure TForm1.ProgressBar1MouseMove(Sender: TObject; Shift: TShiftState; X,
 var
   inx : Integer;
   filename : string;
+  bmp : TBitMap;
 begin
   inx := Round(X * ProgressBar1.Max / ProgressBar1.Width);
   ProgressBar1.Hint := IntToStr(inx);
 
-  if True then
+  if not video[1].input_yuv then
   begin
     filename := video[1].FileNamePrefix + IntToStr(inx) + extension;
     if FileExists(filename) then
     begin
       Image1.Left := x;
       AssignImage(filename, Image1.Picture.Bitmap);
+      Image1.Visible := True;
+    end;
+  end
+  else begin
+    bmp := Form3.get_yuv_frame(video[1].FullFilename, 1, inx);
+    if bmp <> nil then
+    begin
+      Image1.Left := x;
+      Image1.Picture.Bitmap.Assign(bmp);
       Image1.Visible := True;
     end;
   end;
@@ -1252,9 +1280,30 @@ begin
 end;
 
 procedure TForm1.ChangePixelFormat1Click(Sender: TObject);
+var
+  id : integer;
+  opened : Boolean;
+  bmp : TBitMap;
 begin
   if Form3.ShowModal = mrOK then
+  begin
+    opened := False;
+    for id := 1 to 2 do
+    begin
+      if video[id].input_yuv then
+        begin
+          bmp := Form3.get_yuv_frame(video[id].FullFileName, id, video[id].FrameIndex-1);
+          if bmp <> nil then
+          begin
+            video[id].BitMap.Assign(bmp);
+            opened := True;
+          end;
+        end;
+    end;
+
+  if opened then
     ShowPicture;
+  end;
 end;
 
 procedure TForm1.DisplayY1Click(Sender: TObject);
@@ -1263,13 +1312,14 @@ var
   opened : Boolean;
   bmp : TBitMap;
 begin
+  (Sender as TMenuItem).Checked := True;
   opened := False;
   Form3.yuv_display_mode := (Sender as TMenuItem).Tag;
   for id := 1 to 2 do
   begin
     if video[id].input_yuv then
       begin
-        bmp := Form3.get_yuv_frame(video[id].FullFileName, video[id].FrameIndex-1);
+        bmp := Form3.get_current_frame(id);
         if bmp <> nil then
         begin
           video[id].BitMap.Assign(bmp);
@@ -1559,6 +1609,13 @@ begin
   begin
     Timer1.Interval := 500;
     //Timer1.Enabled := False;
+  end;
+
+  if video[1].FrameIndex + 1 >= video[1].FrameNumber then
+  begin
+    Timer1.Enabled := False;
+    LoadPicture(video[1].FrameIndex, video[2].FrameIndex, 0);
+    ShowPicture;
   end;
 end;
 

@@ -51,7 +51,7 @@ type
     procedure yuv_get_y(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var luma: Byte);
     procedure yuv_get_uv(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
 
-    function yuv_read_one_frame(filename: string; frm_inx: integer; frame_size: integer) : Boolean;
+    function yuv_read_one_frame(filename: string; id, frm_inx: integer; frame_size: integer) : Boolean;
     function yuv_show_one_frame(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
     function get_yuv_frame(filename: string; id, frame_inx: integer) : TBitmap;
     function get_current_frame(id: integer): TBitmap;
@@ -280,7 +280,7 @@ begin
   stride[2] := stride[1];
 end;
 
-function TForm3.yuv_read_one_frame(filename: string; frm_inx: integer; frame_size: integer) : Boolean;
+function TForm3.yuv_read_one_frame(filename: string; id, frm_inx: integer; frame_size: integer) : Boolean;
 var
   fp : THandle;
   len : integer;
@@ -290,11 +290,11 @@ begin
   if (fp <> invalid_handle_value) then begin
     if FileSeek(fp, frm_inx*frame_size, 0) <> -1 then
     begin
-      len := FileRead(fp, yuv_data^, frame_size);
+      len := FileRead(fp, yuv_data[id]^, frame_size);
       if len = frame_size then
         Result := True
       else if (len > 0) AND (len < frame_size) then
-        FillMemory(@yuv_data[len], frame_size - len, 0);
+        FillMemory(@yuv_data[id][len], frame_size - len, 0);
     end;
     FileClose(fp);
   end;
@@ -421,13 +421,13 @@ end;
 
 function TForm3.get_yuv_frame(filename: string; id, frame_inx: integer): TBitmap;
 begin
-  if yuv_read_one_frame(filename, frame_inx, framesize) then
+  if yuv_read_one_frame(filename, id, frame_inx, framesize) then
     Result := yuv_show_one_frame(width, height, stride, pix_fmt, yuv_data[id])
   else
     Result := nil;
 end;
 
-function TForm3.get_current_frame: TBitmap(id: integer);
+function TForm3.get_current_frame(id: integer): TBitmap;
 begin
   Result := yuv_show_one_frame(width, height, stride, pix_fmt, yuv_data[id])
 end;
