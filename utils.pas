@@ -45,6 +45,8 @@ YUV_YUV = 7;
 
 implementation
 
+uses yuv;
+
 procedure CheckResult(b: Boolean);
 begin
   if not b then
@@ -475,11 +477,23 @@ end;
 function ffprobeStreamInfo(filename: string): TStrings;
 var
   i, s: integer;
-  cmd : string;
+  cmd, FileExt : string;
   output: TStrings;
 begin
   Result := nil;
-  if True then
+  FileExt := ExtractFileExt(filename);
+  if Pos('.yuv', FileExt) > 0 then
+  begin
+    Result := TStringList.Create;
+    Result.Add('codec_name=rawvideo');
+    Result.Add('codec_type=video');
+    Result.Add('width=' + IntToStr(Form3.width[0]));
+    Result.Add('height=' + IntToStr(Form3.height[0]));
+    Result.Add('pix_fmt=' + Form3.ComboBox1.Items[Form3.pix_fmt]);
+    Result.Add('Ystride=' + IntToStr(Form3.stride[0]));
+    Result.Add('UVstride=' + IntToStr(Form3.stride[1]));
+    exit;
+  end;
 
   cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_streams -hide_banner';
   output := RunDOS(cmd, 50000);
