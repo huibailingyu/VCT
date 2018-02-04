@@ -73,6 +73,10 @@ object Form1: TForm1
       Checked = True
       OnClick = ShowInformation1Click
     end
+    object ShowInformation2: TMenuItem
+      Caption = 'Show Information'
+      OnClick = ShowInformation2Click
+    end
     object N4: TMenuItem
       Caption = '-'
     end

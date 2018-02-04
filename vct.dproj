@@ -54,6 +54,9 @@
 			<DCCReference Include="yuv.pas">
 				<Form>Form3</Form>
 			</DCCReference>
+			<DCCReference Include="info.pas">
+				<Form>Form4</Form>
+			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

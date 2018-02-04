@@ -90,6 +90,7 @@ type
     Justify1: TMenuItem;
     SaveFrame1: TMenuItem;
     SaveFrame11: TMenuItem;
+    ShowInformation2: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -121,6 +122,7 @@ type
     procedure DisplayY1Click(Sender: TObject);
     procedure ChangePixelFormat1Click(Sender: TObject);
     procedure None1Click(Sender: TObject);
+    procedure ShowInformation2Click(Sender: TObject);
   private
     { Private declarations }
     video : array[1..2] of TVideo;
@@ -176,7 +178,7 @@ var
 
 implementation
 
-uses setting, yuv;
+uses setting, yuv, info;
 
 {$R *.dfm}
 procedure TForm1.WMDROPFILES(var Msg: TMessage);
@@ -1540,6 +1542,23 @@ begin
   ShowInformation1.Checked := not ShowInformation1.Checked;
   if ShowInformation1.Checked then
     ShowInformation;
+end;
+
+procedure TForm1.ShowInformation2Click(Sender: TObject);
+var
+  id : integer;
+begin
+  ShowInformation2.Checked := not ShowInformation2.Checked;
+  if ShowInformation2.Checked then
+  begin
+    Form4.picture_number := picture_number;
+    for id := 1 to picture_number do
+      Form4.filename[id] := video[id].FullFileName;
+    Form4.Position := poMainFormCenter;
+    Form4.Show;
+  end
+  else
+    Form4.Hide;
 end;
 
 procedure TForm1.FormKeyDown(Sender: TObject; var Key: Word;

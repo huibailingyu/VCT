@@ -18,6 +18,7 @@ uses
   function FormatFileSize(nSize: integer): String;
   function iniFileIO(ini_filename: string; var extension, outfolder, segment_mode: string): Boolean;
   procedure diffTwoImage(bmp1, bmp2: TBitMap; diff_mode, threshold : Integer; var bmp0: TBitmap);
+  function ffprobeStreamInfo(filename: string): TStrings;
   var
     log_file: TStrings;
 
@@ -469,6 +470,36 @@ begin
     end;
   end;
 
+end;
+
+function ffprobeStreamInfo(filename: string): TStrings;
+var
+  i, s: integer;
+  cmd : string;
+  output: TStrings;
+begin
+  Result := nil;
+  if True then
+
+  cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_streams -hide_banner';
+  output := RunDOS(cmd, 50000);
+  if output.Count > 0 then
+  begin
+    s := 0;
+    Result := TStringList.Create;
+    for I := 0 to output.Count - 1 do
+    begin
+      if Pos('[STREAM]', output.Strings[i]) > 0 then begin
+        s := 1;
+        continue;
+      end
+      else if Pos('[/STREAM]', output.Strings[i]) > 0 then
+        break;
+      if s = 1 then
+        Result.Add(output.Strings[i]);
+    end;
+    output.Free;
+  end;
 end;
 
 end.
