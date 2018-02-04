@@ -91,6 +91,7 @@ type
     SaveFrame1: TMenuItem;
     SaveFrame11: TMenuItem;
     ShowInformation2: TMenuItem;
+    Image2: TImage;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -123,6 +124,7 @@ type
     procedure ChangePixelFormat1Click(Sender: TObject);
     procedure None1Click(Sender: TObject);
     procedure ShowInformation2Click(Sender: TObject);
+    procedure ShowFrameInfo1Click(Sender: TObject);
   private
     { Private declarations }
     video : array[1..2] of TVideo;
@@ -463,21 +465,27 @@ begin
       end;
       MyText.Free;
     end;
-
   end;
+  Form1.Cursor := crDefault;
+end;
 
+procedure TForm1.ShowFrameInfo1Click(Sender: TObject);
+var
+ cmd : string;
+ id: Integer;
+begin
+  ShowFrameInfo1.Checked := not ShowFrameInfo1.Checked;
   if ShowFrameInfo1.Checked then
   begin
     caption := 'ffprobe frames';
-    cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries frame=pkt_size,pict_type -of csv';
-    // FIXME, why this ffprobe cannot terminate ??, need to add 3000 timeout.
-    video[id].FrameInfo := RunDOS(cmd, 3000);
+    Form1.Cursor := crHourGlass;
+    for id := 1 to picture_number do
+    begin
+      cmd := 'ffprobe -i ' + video[id].FullFileName + ' -hide_banner -select_streams v -show_entries frame=pkt_size,pict_type -of csv';
+      video[id].FrameInfo := RunDOS(cmd, 5000);
+    end;
     Form1.Cursor := crDefault;
-    if video[id].FrameNumber <> video[id].FrameInfo.Count then
-      video[id].FrameNumber := video[id].FrameInfo.Count;
-  end
-  else
-    video[id].FrameInfo := nil;
+  end;
 end;
 
 procedure TForm1.ShowInformation;
@@ -1507,6 +1515,7 @@ procedure TForm1.FormMouseMove(Sender: TObject; Shift: TShiftState; X,
   Y: Integer);
 var
   offset : Integer;
+  bmp : TBitMap;
 begin
   if picture_number = 0 then
     exit;
@@ -1531,6 +1540,28 @@ begin
     ProgressBar1.Width := Form1.ClientWidth - ProgressBar1.Left - offset;
     Image1.Top := ProgressBar1.Top - Image1.Height - 16;
     ProgressBar1.Visible := True;
+
+    if ShowFrameInfo1.Checked then
+    begin
+      Image2.Width := ProgressBar1.Width;
+      if Image2.Tag = 0 then
+      begin
+        bmp := ShowFrameInfo(video[1].FrameInfo, Image2.Width, Image2.Height);
+        if bmp <> nil then
+        begin
+          image2.Picture.Bitmap.Assign(bmp);
+          Image2.Tag := 1;
+          bmp.Free;
+        end;
+      end;
+      if Image2.Tag = 1 then
+      begin
+        Image2.Width := ProgressBar1.Width;
+        Image2.Left := ProgressBar1.Left;
+        Image2.Top := ProgressBar1.Top - Image2.Height - 4;
+        image2.Visible := True;
+      end;
+    end;
   end;
 
   if (Y < Form1.Height - 64) AND ProgressBar1.Visible then
@@ -1709,6 +1740,7 @@ begin
     Timer2.Enabled := False;
     ProgressBar1.Visible := False;
     Image1.Visible := False;
+    Image2.Visible := False;
   end;
 end;
 
@@ -1726,8 +1758,9 @@ begin
     begin
       ProgressBar1.Visible := False;
       Image1.Visible := False;
+      Image2.Visible := False;
     end;
-
+    Image2.Tag := 0;
 
     if windows_size > 0 then
       Image1.Width := 256

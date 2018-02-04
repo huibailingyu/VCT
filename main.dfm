@@ -26,12 +26,19 @@ object Form1: TForm1
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
+  object Image2: TImage
+    Left = 64
+    Top = 376
+    Width = 561
+    Height = 66
+  end
   object Image1: TImage
     Left = 80
-    Top = 314
+    Top = 290
     Width = 128
     Height = 128
     Stretch = True
+    Transparent = True
   end
   object ProgressBar1: TProgressBar
     Left = 64
@@ -66,7 +73,7 @@ object Form1: TForm1
     end
     object ShowFrameInfo1: TMenuItem
       Caption = 'Show Frame Info'
-      Enabled = False
+      OnClick = ShowFrameInfo1Click
     end
     object ShowInformation1: TMenuItem
       Caption = 'Show PSNR'

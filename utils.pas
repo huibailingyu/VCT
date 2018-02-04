@@ -19,6 +19,7 @@ uses
   function iniFileIO(ini_filename: string; var extension, outfolder, segment_mode: string): Boolean;
   procedure diffTwoImage(bmp1, bmp2: TBitMap; diff_mode, threshold : Integer; var bmp0: TBitmap);
   function ffprobeStreamInfo(filename: string): TStrings;
+  function ShowFrameInfo(FrameInfo: TStrings; bmp_width, bmp_height: Integer): TBitmap;
   var
     log_file: TStrings;
 
@@ -514,6 +515,88 @@ begin
     end;
     output.Free;
   end;
+end;
+
+function ShowFrameInfo(FrameInfo: TStrings; bmp_width, bmp_height: Integer): TBitmap;
+var
+  i, Count, w, h, k : integer;
+  max_size : Real;
+  line : TStrings;
+  s : string;
+  frame_size: array of integer;
+  frame_type: array of integer;
+  IPBcolor: array [0..3] of Tcolor;
+  color: Tcolor;
+begin
+  //FrameInfo.SaveToFile('e:\ttt.txt');
+
+  Result := nil;
+  if FrameInfo = nil then
+    exit;
+  Count := FrameInfo.Count;
+  if Count <= 1 then
+    exit;
+
+  Setlength(frame_size, Count);
+  Setlength(frame_type, Count);
+  line := TStringList.Create;
+
+  max_size := 0;
+  k := 0;
+  for i := 0 to Count - 1 do
+  begin
+    if Pos('frame,', FrameInfo.Strings[i]) <= 0 then
+      break;
+    line.CommaText := FrameInfo.Strings[i];
+    frame_size[k] := StrToInt(line.Strings[1]);
+    if max_size < frame_size[i] then
+      max_size := frame_size[i];
+    if line.Strings[2] = 'I' then
+      frame_type[k] := 0
+    else if line.Strings[2] = 'P' then
+      frame_type[k] := 1
+    else if line.Strings[2] = 'B' then
+      frame_type[k] := 2
+    else
+      frame_type[k] := 3;
+    k := k + 1;
+  end;
+  line.Free;
+
+  Count := k;
+  if Count <= 1 then
+  begin
+    frame_size := nil;
+    frame_type := nil;
+    Exit;
+  end;
+
+  w := bmp_width div Count;
+  if w < 1 then
+    w := 1;
+  //else if w > 8 then
+  //  w := 8;
+
+  IPBcolor[0] := clRed;
+  IPBcolor[1] := clBlue;
+  IPBcolor[2] := clGreen;
+  IPBcolor[3] := clYellow;
+
+  Result := TBitmap.Create;
+  Result.PixelFormat := pf24bit;
+  Result.Width := bmp_width;
+  Result.Height := bmp_height;
+  Result.Canvas.Pen.Width := 1;
+  Result.Canvas.Pen.Color := clBlack;
+
+  for i := 0 to Count - 1 do
+  begin
+    h := Round(frame_size[i] * Result.Height / max_size);
+    Result.Canvas.Brush.Color := IPBcolor[frame_type[i]];
+    REsult.Canvas.Rectangle(i*w, Result.Height, (i+1)*w-1, Result.Height - h);
+  end;
+  frame_size := nil;
+  frame_type := nil;
 end;
 
 end.
