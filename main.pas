@@ -1088,7 +1088,7 @@ begin
     end;
   end;
 
-  if (picture_number > 0) AND (Result = True) then
+  if (picture_number = 2) AND (Result = True) then
     diffTwoImage(video[1].BitMap, video[2].BitMap, diff_mode, diff_threshold, diff);
 end;
 
