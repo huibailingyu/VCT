@@ -28,32 +28,31 @@ type
     procedure MaskEdit4Change(Sender: TObject);
     procedure MaskEdit1KeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
-    procedure MaskEdit1KeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
     procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
   public
     { Public declarations }
-    width : array [0..2] of Integer;
-    height : array [0..2] of Integer;
-    stride : array [0..2] of Integer;
+    yuv_width : Integer;
+    yuv_height : Integer;
+    yuv_stride : array [0..1] of Integer;
     pix_fmt : Integer;
     ysize : integer;
     uvsize: integer;
     framesize : integer;
     yuv_display_mode : integer;
     yuv_data : array [1..2] of PByte;
-    procedure guess_height;
-    procedure calculate_value(linesize0, linesize1 : integer);
+    function guess_height(width: integer) : integer;
+    procedure autoset_value(width : integer);
+    procedure calculate_value(width : integer);
     procedure paser_filename(filename: string);
 
-    procedure yuv_get_y(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var luma: Byte);
-    procedure yuv_get_uv(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
-    procedure rgb_get_rgb(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var r, g, b: Byte);
+    procedure yuv_get_y(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var luma: Byte);
+    procedure yuv_get_uv(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
+    procedure rgb_get_rgb(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var r, g, b: Byte);
 
     function yuv_read_one_frame(filename: string; id, frm_inx: integer; frame_size: integer) : Boolean;
-    function yuv_show_one_frame(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
+    function yuv_show_one_frame(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
     function get_yuv_frame(filename: string; id, frame_inx: integer) : TBitmap;
     function get_current_frame(id: integer): TBitmap;
   end;
@@ -66,70 +65,61 @@ implementation
 uses utils;
 
 {$R *.dfm}
-procedure TForm3.calculate_value(linesize0, linesize1 : integer);
+procedure TForm3.autoset_value(width : integer);
 begin
-  stride[0] := linesize0;
-  if pix_fmt = YUV420p then begin
-    width[1] := width[0] div 2;
-    height[1] := height[0] div 2;
-    stride[1] := linesize1;
-  end
-  else if pix_fmt = YUV400p then begin
-    width[1] := 0;
-    height[1] := 0;
-    stride[1] := 0;
-  end
-  else if pix_fmt = NV12 then begin
-    width[1] := width[0];
-    height[1] := height[0] div 2;
-    stride[1] := linesize1;
-  end
-  else if (pix_fmt = YUV444p) OR (pix_fmt = RGB888) OR (pix_fmt = BGR888) then  begin
-    width[1] := width[0];
-    height[1] := height[0];
-    stride[1] := linesize1;
-  end
+  yuv_stride[0] := width;
+  yuv_stride[1] := width div 2;
+
+  if pix_fmt = YUV400p then
+    yuv_stride[1] := 0
+  else if (pix_fmt = NV12) OR (pix_fmt = YUV444p) OR
+          (pix_fmt = RGB888) OR (pix_fmt = BGR888) then
+    yuv_stride[1] := width
   else if (pix_fmt = RGB24) OR (pix_fmt = BGR24) then  begin
-    stride[0] := 3*linesize0;
-    width[1] := 0;
-    height[1] := 0;
-    stride[1] := 0;
-  end
-  else begin
-    width[1] := width[0] div 2;
-    height[1] := height[0] div 2;
-    stride[1] := linesize1;
+    yuv_stride[0] := 3*width;
+    yuv_stride[1] := 0;
   end;
+  MaskEdit3.Text := IntToStr(yuv_stride[0]);
+  MaskEdit4.Text := IntToStr(yuv_stride[1]);
+end;
 
-  width[2] := width[1];
-  height[2] := height[1];
-  stride[2] := stride[1];
+procedure TForm3.calculate_value;
+var
+  h1 : integer;
+begin
+  h1 := yuv_height div 2;
+  if (pix_fmt = YUV420p) OR (pix_fmt = NV12) then
+    h1 := yuv_height div 2
+  else if (pix_fmt = YUV400p) OR (pix_fmt = RGB24) OR (pix_fmt = BGR24) then
+    h1 := 0
+  else if (pix_fmt = YUV444p) OR (pix_fmt = RGB888) OR (pix_fmt = BGR888) then
+    h1 := yuv_height;
 
-  ysize := height[0] * stride[0];
-  uvsize := height[1] * stride[1];
+  ysize := yuv_height * yuv_stride[0];
+  uvsize := h1 * yuv_stride[1];
   framesize := ysize + uvsize + uvsize;
 end;
 
-procedure TForm3.guess_height;
+function TForm3.guess_height(width: integer) : integer;
 begin
-  if width[0] = 352 then
-    height[0] := 176
-  else if width[0] = 720 then
-    height[0] := 576
-  else if width[0] = 640 then
-    height[0] := 320
-  else if width[0] = 1024 then
-    height[0] := 512
-  else if width[0] = 1920 then
-    height[0] := 1080
-  else if width[0] = 2048 then
-    height[0] := 1024
-  else if width[0] = 4096 then
-    height[0] := 2048
-  else if width[0] < 2048 then
-    height[0] := width[0]
+  if width = 352 then
+    result := 176
+  else if width = 720 then
+    result := 576
+  else if width = 640 then
+    result := 320
+  else if width = 1024 then
+    result := 512
+  else if width = 1920 then
+    result := 1080
+  else if width = 2048 then
+    result := 1024
+  else if width = 4096 then
+    result := 2048
+  else if width < 2048 then
+    result := width
   else
-    height[0] := width[0] div 2;
+    result := width div 2;
 end;
 
 procedure TForm3.paser_filename(filename: string);
@@ -177,27 +167,24 @@ begin
 
   if (ww > 0) and (hh > 0) then
   begin
-    width[0] := ww;
-    height[0] := hh;
-    calculate_value(ww, ww div 2);
+    yuv_width := ww;
+    yuv_height := hh;
+    autoset_value(ww);
   end;
 end;
 
 procedure TForm3.Button1Click(Sender: TObject);
 begin
   try
-    width[0]  := StrToInt(Trim(MaskEdit1.Text));
-    height[0] := StrToInt(Trim(MaskEdit2.Text));
-    stride[0] := StrToInt(Trim(MaskEdit3.Text));
-    stride[1] := StrToInt(Trim(MaskEdit4.Text));
-    calculate_value(stride[0], stride[1]);
+    yuv_width  := StrToInt(Trim(MaskEdit1.Text));
+    yuv_height := StrToInt(Trim(MaskEdit2.Text));
+    yuv_stride[0] := StrToInt(Trim(MaskEdit3.Text));
+    yuv_stride[1] := StrToInt(Trim(MaskEdit4.Text));
   finally
 
   end;
+  calculate_value(yuv_width);
 
-  ysize := height[0] * stride[0];
-  uvsize := height[1] * stride[1];
-  framesize := ysize + uvsize + uvsize;
   if yuv_data[1] <> nil then
      FreeMem(yuv_data[1]);
   if yuv_data[2] <> nil then
@@ -209,9 +196,7 @@ end;
 procedure TForm3.ComboBox1Change(Sender: TObject);
 begin
   pix_fmt := ComboBox1.ItemIndex;
-  calculate_value(width[0], width[0] div 2);
-  MaskEdit3.Text := IntToStr(stride[0]);
-  MaskEdit4.Text := IntToStr(stride[1]);
+  autoset_value(StrToInt(Trim(MaskEdit1.Text)));
 end;
 
 procedure TForm3.FormCreate(Sender: TObject);
@@ -219,10 +204,10 @@ begin
   yuv_data[1] := nil;
   yuv_data[2] := nil;
   yuv_display_mode := YUV_YUV;
-  width[0] := 720;
-  height[0] := 360;
+  yuv_width := 720;
+  yuv_height := 360;
   pix_fmt := YUV420p;
-  calculate_value(width[0], width[0] div 2);
+  autoset_value(yuv_width);
 end;
 
 procedure TForm3.FormDestroy(Sender: TObject);
@@ -236,26 +221,10 @@ end;
 procedure TForm3.FormShow(Sender: TObject);
 begin
   ComboBox1.ItemIndex := pix_fmt;
-  MaskEdit1.Text := IntToSTr(width[0]);
-  MaskEdit2.Text := IntToSTr(height[0]);
-  MaskEdit3.Text := IntToStr(stride[0]);
-  MaskEdit4.Text := IntToStr(stride[1]);
-end;
-
-procedure TForm3.MaskEdit1KeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-begin
-  try
-    if Trim(MaskEdit1.Text) <> '' then begin
-      width[0] := StrToInt(Trim(MaskEdit1.Text));
-      guess_height;
-      MaskEdit2.Text := IntToStr(height[0]);
-      calculate_value(width[0], width[0] div 2);
-      MaskEdit3.Text := IntToStr(stride[0]);
-      MaskEdit4.Text := IntToStr(stride[1]);
-    end;
-  finally
-  end;
+  MaskEdit1.Text := IntToSTr(yuv_width);
+  MaskEdit2.Text := IntToSTr(yuv_height);
+  MaskEdit3.Text := IntToStr(yuv_stride[0]);
+  MaskEdit4.Text := IntToStr(yuv_stride[1]);
 end;
 
 procedure TForm3.MaskEdit1KeyUp(Sender: TObject; var Key: Word;
@@ -265,26 +234,39 @@ begin
   begin
     Button1Click(self);
     ModalResult := mrOk;
+  end
+  else
+  begin
+    try
+      if ((Sender as TMaskEdit).Tag = 0) AND (Trim(MaskEdit1.Text) <> '') then
+      begin
+        yuv_width := StrToInt(Trim(MaskEdit1.Text));
+        caption := IntToStr(yuv_width);
+        yuv_height := guess_height(yuv_width);
+        MaskEdit2.Text := IntToStr(yuv_height);
+        autoset_value(yuv_width);
+      end;
+    finally
+    end;
   end;
 end;
 
 procedure TForm3.MaskEdit2Change(Sender: TObject);
 begin
   if Trim(MaskEdit2.Text) <> '' then
-    height[0] := StrToInt(Trim(MaskEdit2.Text));
+    yuv_height := StrToInt(Trim(MaskEdit2.Text));
 end;
 
 procedure TForm3.MaskEdit3Change(Sender: TObject);
 begin
   if Trim(MaskEdit3.Text) <> '' then
-    stride[0] := StrToInt(Trim(MaskEdit3.Text));
+    yuv_stride[0] := StrToInt(Trim(MaskEdit3.Text));
 end;
 
 procedure TForm3.MaskEdit4Change(Sender: TObject);
 begin
   if Trim(MaskEdit4.Text) <> '' then
-    stride[1] := StrToInt(Trim(MaskEdit4.Text));
-  stride[2] := stride[1];
+    yuv_stride[1] := StrToInt(Trim(MaskEdit4.Text));
 end;
 
 function TForm3.yuv_read_one_frame(filename: string; id, frm_inx: integer; frame_size: integer) : Boolean;
@@ -307,11 +289,11 @@ begin
   end;
 end;
 
-procedure TForm3.yuv_get_y(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var luma: Byte);
+procedure TForm3.yuv_get_y(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var luma: Byte);
 var
   inx : integer;
 begin
-  if (0<=x) AND (x<width[0]) AND (0<=y) AND (y<height[0]) then begin
+  if (0<=x) AND (x<width) AND (0<=y) AND (y<height) then begin
     inx := y*stride[0] + x;
     luma := data[inx];
   end
@@ -319,14 +301,14 @@ begin
     luma := 0;
 end;
 
-procedure TForm3.rgb_get_rgb(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var r, g, b: Byte);
+procedure TForm3.rgb_get_rgb(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var r, g, b: Byte);
 var
   inx : integer;
 begin
   r := 0;
   g := 0;
   b := 0;
-  if (0<=x) AND (x<width[0]) AND (0<=y) AND (y<height[0]) then begin
+  if (0<=x) AND (x<width) AND (0<=y) AND (y<height) then begin
     if pix_fmt = RGB24 then  begin
       inx := y*stride[0] + 3*x;
       r := data[inx];
@@ -342,38 +324,41 @@ begin
     else if pix_fmt = RGB888 then begin
       inx := y*stride[0] + x;
       r := data[inx];
-      g := data[inx + height[0]*stride[0]];
-      b := data[inx + height[0]*stride[0]*2];
+      g := data[inx + height*stride[0]];
+      b := data[inx + height*stride[0]*2];
     end
     else if pix_fmt = BGR888 then begin
       inx := y*stride[0] + x;
-      r := data[inx + height[0]*stride[0]*2];
-      g := data[inx + height[0]*stride[0]];
+      r := data[inx + height*stride[0]*2];
+      g := data[inx + height*stride[0]];
       b := data[inx];
     end;
     r := data[inx];
   end
 end;
 
-procedure TForm3.yuv_get_uv(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
+procedure TForm3.yuv_get_uv(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
 var
   inx : integer;
-  ysize : integer;
-  uvsize : integer;
+  width1, height1 : integer;
 begin
-  ysize := stride[0] * height[0];
-  uvsize := stride[1] * height[1];
   if pix_fmt = YUV420p then begin
-     x := x div 2;
-     y := y div 2;
+    x := x div 2;
+    y := y div 2;
+    width1 := width div 2;
+    height1 := height div 2;
   end else if pix_fmt = YUV400p then begin
     x := -1;
     y := -1;
+    width1 := 0;
+    height1 := 0;
   end else if pix_fmt = NV12 then begin
     y := y div 2;
+    width1 := width;
+    height1 := height div 2;
   end;
 
-  if (0<=x) AND (x<width[1]) AND (0<=y) AND (y<height[1]) then begin
+  if (0<=x) AND (x<width1) AND (0<=y) AND (y<height1) then begin
     inx := ysize + y*stride[1] + x;
     u := data[inx];
     if pix_fmt <> NV12 then
@@ -388,7 +373,7 @@ begin
   end;
 end;
 
-function TForm3.yuv_show_one_frame(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
+function TForm3.yuv_show_one_frame(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
 var
   Y, U, V : Byte;
   R, G, B : Real;
@@ -397,8 +382,8 @@ var
 begin
   Result := TBitMap.Create;
   Result.PixelFormat := pf24bit;
-  Result.Width := width[0];
-  Result.Height := height[0];
+  Result.Width := width;
+  Result.Height := height;
 
   for h := 0 to Result.Height - 1 do
     begin
@@ -472,14 +457,14 @@ end;
 function TForm3.get_yuv_frame(filename: string; id, frame_inx: integer): TBitmap;
 begin
   if yuv_read_one_frame(filename, id, frame_inx, framesize) then
-    Result := yuv_show_one_frame(width, height, stride, pix_fmt, yuv_data[id])
+    Result := yuv_show_one_frame(yuv_width, yuv_height, yuv_stride, pix_fmt, yuv_data[id])
   else
     Result := nil;
 end;
 
 function TForm3.get_current_frame(id: integer): TBitmap;
 begin
-  Result := yuv_show_one_frame(width, height, stride, pix_fmt, yuv_data[id])
+  Result := yuv_show_one_frame(yuv_width, yuv_height, yuv_stride, pix_fmt, yuv_data[id])
 end;
 
 end.

@@ -493,11 +493,11 @@ begin
     Result := TStringList.Create;
     Result.Add('codec_name=rawvideo');
     Result.Add('codec_type=video');
-    Result.Add('width=' + IntToStr(Form3.width[0]));
-    Result.Add('height=' + IntToStr(Form3.height[0]));
+    Result.Add('width=' + IntToStr(Form3.yuv_width));
+    Result.Add('height=' + IntToStr(Form3.yuv_height));
     Result.Add('pix_fmt=' + Form3.ComboBox1.Items[Form3.pix_fmt]);
-    Result.Add('Ystride=' + IntToStr(Form3.stride[0]));
-    Result.Add('UVstride=' + IntToStr(Form3.stride[1]));
+    Result.Add('Ystride=' + IntToStr(Form3.yuv_stride[0]));
+    Result.Add('UVstride=' + IntToStr(Form3.yuv_stride[1]));
     exit;
   end;
 

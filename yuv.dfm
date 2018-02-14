@@ -91,7 +91,6 @@ object Form3: TForm3
     MaxLength = 4
     TabOrder = 0
     Text = '    '
-    OnKeyDown = MaskEdit1KeyDown
     OnKeyUp = MaskEdit1KeyUp
   end
   object MaskEdit2: TMaskEdit

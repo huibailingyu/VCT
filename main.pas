@@ -301,8 +301,8 @@ begin
         video[id].input_yuv := True;
         video[id].CodecName := 'RawYUV';
         video[id].PixFormat := Form3.ComboBox1.SelText;
-        video[id].FrameWidth := Form3.width[0];
-        video[id].FrameHeight := Form3.height[0];
+        video[id].FrameWidth := Form3.yuv_width;
+        video[id].FrameHeight := Form3.yuv_height;
         video[id].FrameRate := 25;
         video[id].BitRate := 'N/A' ;
         if Form3.framesize > 0 then
