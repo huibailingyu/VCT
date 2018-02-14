@@ -332,7 +332,7 @@ begin
   end;
 
   Form1.Cursor := crHourGlass;
-  cmd := 'ffprobe -i ' + filename + ' -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,avg_frame_rate,bit_rate,duration';
+  cmd := 'ffprobe -i ' + filename + ' -hide_banner -select_streams v -show_entries stream=codec_name,pix_fmt,nb_frames,width,height,r_frame_rate,avg_frame_rate,bit_rate,duration';
   output := RunDOS(cmd, INFINITE);
 
   try
