@@ -932,7 +932,7 @@ begin
         end;
         if id = picture_number then
         begin
-          if (picture_number > 0) AND (Result = True) then
+          if (picture_number > 1) AND (Result = True) then
             diffTwoImage(video[1].BitMap, video[2].BitMap, diff_mode, diff_threshold, diff);
           Exit;
         end
