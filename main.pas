@@ -1364,7 +1364,8 @@ begin
     begin
       if video[id].input_yuv then
         begin
-          bmp := Form3.get_current_frame(id);
+          //bmp := Form3.get_current_frame(id);
+          bmp := Form3.get_yuv_frame(video[id].fullfilename, id, video[id].FrameIndex);
           if bmp <> nil then
           begin
             video[id].BitMap.Assign(bmp);
