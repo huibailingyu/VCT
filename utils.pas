@@ -38,6 +38,10 @@ YUV420p = 0;
 YUV400p = 1;
 NV12    = 2;
 YUV444p = 3;
+RGB24   = 4;
+BGR24   = 5;
+RGB888  = 6;
+BGR888  = 7;
 
 YUV_Y = 1;
 YUV_U = 2;
@@ -208,13 +212,14 @@ begin
           (Pos('.264', FileExt) > 0) OR (Pos('.flv', FileExt) > 0) OR
           (Pos('.avi', FileExt) > 0) OR (Pos('.ts', FileExt) > 0) OR
           (Pos('.bmp', FileExt) > 0) OR (Pos('.png', FileExt) > 0) OR
-          (Pos('.jpg', FileExt) > 0) OR (Pos('.yuv', FileExt) > 0)
+          (Pos('.jpg', FileExt) > 0) OR (Pos('.yuv', FileExt) > 0) OR
+          (Pos('.rgb', FileExt) > 0) OR (Pos('.bgr', FileExt) > 0)
           ) then
     Result := False
   else
   begin
     Result := False;
-    if (Pos('.yuv', FileExt) > 0) then
+    if (Pos('.yuv', FileExt) > 0) OR (Pos('.rgb', FileExt) > 0) OR (Pos('.bgr', FileExt) > 0)then
     begin
       if FileSizeByName(input_filename) > 0 then
         Result := True;

@@ -50,6 +50,7 @@ type
 
     procedure yuv_get_y(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var luma: Byte);
     procedure yuv_get_uv(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
+    procedure rgb_get_rgb(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var r, g, b: Byte);
 
     function yuv_read_one_frame(filename: string; id, frm_inx: integer; frame_size: integer) : Boolean;
     function yuv_show_one_frame(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
@@ -83,10 +84,16 @@ begin
     height[1] := height[0] div 2;
     stride[1] := linesize1;
   end
-  else if pix_fmt = YUV444p then  begin
+  else if (pix_fmt = YUV444p) OR (pix_fmt = RGB888) OR (pix_fmt = BGR888) then  begin
     width[1] := width[0];
     height[1] := height[0];
     stride[1] := linesize1;
+  end
+  else if (pix_fmt = RGB24) OR (pix_fmt = BGR24) then  begin
+    stride[0] := 3*linesize0;
+    width[1] := 0;
+    height[1] := 0;
+    stride[1] := 0;
   end
   else begin
     width[1] := width[0] div 2;
@@ -312,6 +319,42 @@ begin
     luma := 0;
 end;
 
+procedure TForm3.rgb_get_rgb(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var r, g, b: Byte);
+var
+  inx : integer;
+begin
+  r := 0;
+  g := 0;
+  b := 0;
+  if (0<=x) AND (x<width[0]) AND (0<=y) AND (y<height[0]) then begin
+    if pix_fmt = RGB24 then  begin
+      inx := y*stride[0] + 3*x;
+      r := data[inx];
+      g := data[inx + 1];
+      b := data[inx + 2];
+    end
+    else if pix_fmt = BGR24 then begin
+      inx := y*stride[0] + 3*x;
+      r := data[inx + 2];
+      g := data[inx + 1];
+      b := data[inx];
+    end
+    else if pix_fmt = RGB888 then begin
+      inx := y*stride[0] + x;
+      r := data[inx];
+      g := data[inx + height[0]*stride[0]];
+      b := data[inx + height[0]*stride[0]*2];
+    end
+    else if pix_fmt = BGR888 then begin
+      inx := y*stride[0] + x;
+      r := data[inx + height[0]*stride[0]*2];
+      g := data[inx + height[0]*stride[0]];
+      b := data[inx];
+    end;
+    r := data[inx];
+  end
+end;
+
 procedure TForm3.yuv_get_uv(width, height, stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
 var
   inx : integer;
@@ -362,6 +405,13 @@ begin
       Pixels := Result.ScanLine[h];
       for w := 0 to Result.Width - 1 do
       begin
+        if pix_fmt >= RGB24 then
+        begin
+          rgb_get_rgb(width, height, stride, pix_fmt, data, w, h,
+                      Pixels[w].rgbtRed, Pixels[w].rgbtGreen, Pixels[w].rgbtBlue);
+          continue;
+        end;
+
         if (yuv_display_mode AND YUV_Y) > 0 then
           yuv_get_y(width, height, stride, pix_fmt, data, w, h, Y);
         if yuv_display_mode > YUV_Y then

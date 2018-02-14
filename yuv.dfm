@@ -66,7 +66,11 @@ object Form3: TForm3
       'YUV420P'
       'YUV400P'
       'NV12'
-      'YUV444P')
+      'YUV444P'
+      'RGB24'
+      'BGR24'
+      'RGB888'
+      'BGR888')
   end
   object Button1: TButton
     Left = 144

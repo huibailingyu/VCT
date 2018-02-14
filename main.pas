@@ -290,7 +290,7 @@ begin
   end;
 
   video[id].input_yuv := False;
-  if Pos('.yuv', filename) > 0 then
+  if (Pos('.yuv', filename) > 0) OR (Pos('.rgb', filename) > 0) OR (Pos('.bgr', filename) > 0) then
   begin
     if id = 1 then
     begin
@@ -1171,7 +1171,9 @@ begin
         video[id].FrameNumber := 1;
       end;
     end
-    else if (Pos('.yuv', FileExt) > 0) then
+    else if (Pos('.yuv', FileExt) > 0) OR
+            (Pos('.rgb', FileExt) > 0) OR
+            (Pos('.bgr', FileExt) > 0) then
     begin
       bmp := Form3.get_yuv_frame(input_filename, id, 0);
       if bmp <> nil then
