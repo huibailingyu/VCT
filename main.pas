@@ -506,7 +506,8 @@ begin
      if id = 2 then
        info := info + ' || ';
      info := info + IntToStr(video[id].FrameIndex) + ' / ' + IntToStr(video[id].FrameNumber);
-     info := info + ' , ' + IntToStr(video[id].FileIndex);
+     if video[id].FileIndex >= 0 then
+       info := info + ' , ' + IntToStr(video[id].FileIndex);
      info := info + ' , ' + video[id].FileName;
      info := info + ' , ' + IntToStr(video[id].FrameWidth) + 'x' + IntToStr(video[id].FrameHeight);
      if video[id].IsVideo then
