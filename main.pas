@@ -916,7 +916,7 @@ begin
   begin
     ThreadHandle[id] := 0;
     if (inx[id] > 0) and
-       (inx[id] < video[id].FrameNumber) and
+       (inx[id] <= video[id].FrameNumber) and
        (inx[id] <> video[id].FrameIndex) then
     begin
       inx[id] := inx[id] - 1;
