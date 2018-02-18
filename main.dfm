@@ -86,7 +86,6 @@ object Form1: TForm1
     end
     object ShowData1: TMenuItem
       Caption = 'Show Data (-)'
-      OnClick = ShowData1Click
       object YUV1: TMenuItem
         Caption = 'YUV'
         GroupIndex = 1

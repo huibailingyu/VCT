@@ -128,6 +128,7 @@ type
     procedure None1Click(Sender: TObject);
     procedure ShowInformation2Click(Sender: TObject);
     procedure ShowFrameInfo1Click(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
     procedure GetBlockData(mbx, mby, show_data_type : Integer; var buf1, buf2, buf3 : array of Byte);
     procedure DrawBlock(x, y : Integer);
     procedure YUV1Click(Sender: TObject);
@@ -784,6 +785,39 @@ begin
 
   DragAcceptFiles(Handle, True);
   ResetForm(0);
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+var
+  i, W, H, x, y : integer;
+  filename: string;
+  bmp1, bmp2 : TBitmap;
+begin
+  w := 6;
+  H := 6;
+  bmp1 := TBitmap.Create;
+  for y := 0 to H-1 do
+  begin
+    for x:= 0 to W - 1 do
+    begin
+      i := y*W + x + 1;
+      filename := 'E:\Demo_result\beatudy\face\' + inttostr(i) + '.bmp';
+      bmp1.LoadFromFile(filename);
+      if i = 1 then
+      begin
+        bmp2 := TBitmap.Create;
+        bmp2.PixelFormat := pf24bit;
+        bmp2.Width := bmp1.Width * W;
+        bmp2.Height := bmp1.Height * H;
+      end;
+      bmp2.Canvas.CopyRect(Rect(x*bmp1.Width, y*bmp1.Height, (x+1)*bmp1.Width, (y+1)*bmp1.Height),
+                         bmp1.Canvas,
+                         Rect(0, 0, bmp1.Width, bmp1.Height));
+    end;
+  end;
+  bmp2.SaveToFile('E:\Demo_result\beatudy\face\all.bmp');
+  bmp1.Free;
+  bmp2.Free;
 end;
 
 function TForm1.CallFFmpegDecode(id, fid:Integer; output_filename: String): THandle;
@@ -1831,24 +1865,30 @@ end;
 
 procedure TForm1.GetBlockData(mbx, mby, show_data_type : Integer; var buf1, buf2, buf3 : array of Byte);
 var
-  x, y, s: integer;
+  x, y, xx, yy, s, k: integer;
+  Pixels1: PRGBTripleArray;
 begin
-  if (show_data_type <= 0) OR (show_data_type > 2) then
-    exit;
-  for y := 0 to 15 do
-    for x := 0 to 15 do
-      buf1[y*16 + x] := (y+1)*(x+1);
-  if show_data_type = 1 then
-    s := 8
-  else
-    s := 16;
-
-  for y := 0 to s-1 do
-    for x := 0 to s-1 do
+  if show_data_type = 2 then   // RGB
+  begin
+    xx := mbx * 16;
+    yy := mby * 16;
+    for y := yy to yy + 15 do
     begin
-      buf2[y*s+x] := (y+1)*(x+1);
-      buf3[y*s+x] := (y+1)*(x+1);
+      s := (y - yy) * 16;
+      Pixels1 := video[1].BitMap.ScanLine[y];
+      for x := xx to xx + 15 do
+      begin
+        k := s + (x-xx);
+        buf1[k] := Pixels1[x].rgbtRed;
+        buf2[k] := Pixels1[x].rgbtGreen;
+        buf3[k] := Pixels1[x].rgbtBlue;
+      end;
     end;
+  end
+  else if show_data_type = 1 then   // YUV
+  begin
+    Form3.GetBlockData(mbx, mby, buf1, buf2, buf3);
+  end;
 end;
 
 procedure TForm1.DrawBlock(x, y : Integer);
@@ -1880,7 +1920,21 @@ begin
 
   caption := IntToStr(mbx) + 'x' + IntToStr(mby);
 
-  GetBlockData(mbx, mby, show_data_type, Form4.data_pixels[0], Form4.data_pixels[1], Form4.data_pixels[2])
+  GetBlockData(mbx, mby, show_data_type,
+               Form4.data_pixels[0], Form4.data_pixels[1], Form4.data_pixels[2]);
+
+  if Form4.PageControl1.Pages[2].TabVisible then
+  begin
+    Form4.DrawGrid1.Refresh;
+    Form4.DrawGrid2.Refresh;
+    Form4.DrawGrid3.Refresh;
+  end;
+  if Form4.PageControl1.Pages[3].TabVisible then
+  begin
+    Form4.DrawGrid4.Refresh;
+    Form4.DrawGrid5.Refresh;
+    Form4.DrawGrid6.Refresh;
+  end;
 end;
 
 end.
