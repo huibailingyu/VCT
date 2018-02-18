@@ -84,6 +84,23 @@ object Form1: TForm1
       Caption = 'Show Information'
       OnClick = ShowInformation2Click
     end
+    object ShowData1: TMenuItem
+      Caption = 'Show Data (-)'
+      OnClick = ShowData1Click
+      object YUV1: TMenuItem
+        Caption = 'YUV'
+        GroupIndex = 1
+        RadioItem = True
+        OnClick = YUV1Click
+      end
+      object RGB2: TMenuItem
+        Tag = 1
+        Caption = 'RGB'
+        GroupIndex = 1
+        RadioItem = True
+        OnClick = YUV1Click
+      end
+    end
     object N4: TMenuItem
       Caption = '-'
     end

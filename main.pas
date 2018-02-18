@@ -92,6 +92,9 @@ type
     SaveFrame11: TMenuItem;
     ShowInformation2: TMenuItem;
     Image2: TImage;
+    ShowData1: TMenuItem;
+    YUV1: TMenuItem;
+    RGB2: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -125,6 +128,9 @@ type
     procedure None1Click(Sender: TObject);
     procedure ShowInformation2Click(Sender: TObject);
     procedure ShowFrameInfo1Click(Sender: TObject);
+    procedure GetBlockData(mbx, mby, show_data_type : Integer; var buf1, buf2, buf3 : array of Byte);
+    procedure DrawBlock(x, y : Integer);
+    procedure YUV1Click(Sender: TObject);
   private
     { Private declarations }
     video : array[1..2] of TVideo;
@@ -172,6 +178,8 @@ type
     extension : String;
     outfolder: String;
     use_segment_mode : Boolean;
+    show_data_type : integer;
+    mb_x, mb_y : integer;
     ChangeWindowMessageFilter:function(msg: UINT; dwFlag: DWORD): BOOL; stdcall;
   end;
 
@@ -200,6 +208,26 @@ begin
   InitVideo(3);
   InputFiles(Files);
   Files.Free;
+end;
+
+procedure TForm1.YUV1Click(Sender: TObject);
+begin
+  (Sender As TMenuItem).Checked := not (Sender As TMenuItem).Checked;
+  if YUV1.Checked then
+  begin
+    show_data_type := 1;
+    ShowData1.Caption := 'Show Data (YUV)';
+  end
+  else if RGB2.Checked then
+  begin
+    show_data_type := 2;
+    ShowData1.Caption := 'Show Data (RGB)';
+  end
+  else
+  begin
+    show_data_type := 0;
+    ShowData1.Caption := 'Show Data (-)';
+  end;
 end;
 
 function RunFFMPEG(param: String): Integer; stdcall;
@@ -1479,6 +1507,13 @@ begin
       move_y := Y;
     end;
   end;
+
+  if (picture_number = 1) AND (show_data_type > 0) AND (windows_size < 2) AND
+     (show_rect.Left <= x) AND (x < show_rect.Right) AND
+     (show_rect.Top <= y) AND (y < show_rect.Bottom) then
+  begin
+    DrawBlock(x, y);
+  end;
 end;
 
 procedure TForm1.FormMouseUp(Sender: TObject; Button: TMouseButton;
@@ -1774,6 +1809,78 @@ begin
 
     ShowPicture;
   end;
+end;
+
+function InRange(x, y, w, h : Integer; rect : Trect):boolean;
+begin
+  if (rect.Left <= x) AND (x + w <= rect.Right) AND
+      (rect.Top <= y) AND (y + h <= rect.Bottom) then
+     result := True
+  else
+     result := False;
+end;
+
+procedure DrawRectange(canvas: TCanvas; x, y, w, h :Integer);
+begin
+  canvas.MoveTo(x, y);
+  canvas.LineTo(x, y+h);
+  canvas.LineTo(x+w, y+h);
+  canvas.LineTo(x+w,y);
+  canvas.LineTo(x, y);
+end;
+
+procedure TForm1.GetBlockData(mbx, mby, show_data_type : Integer; var buf1, buf2, buf3 : array of Byte);
+var
+  x, y, s: integer;
+begin
+  if (show_data_type <= 0) OR (show_data_type > 2) then
+    exit;
+  for y := 0 to 15 do
+    for x := 0 to 15 do
+      buf1[y*16 + x] := (y+1)*(x+1);
+  if show_data_type = 1 then
+    s := 8
+  else
+    s := 16;
+
+  for y := 0 to s-1 do
+    for x := 0 to s-1 do
+    begin
+      buf2[y*s+x] := (y+1)*(x+1);
+      buf3[y*s+x] := (y+1)*(x+1);
+    end;
+end;
+
+procedure TForm1.DrawBlock(x, y : Integer);
+var
+  bx, by, mbx, mby, sw, sh : integer;
+  scale_w, scale_h : Real;
+begin
+  if (video[1].BitMap.Width <= 0) OR (show_w <=0) then
+    exit;
+
+  scale_w := video[1].BitMap.Width / show_w;
+  scale_h := video[1].BitMap.Height / show_h;
+  sw := Round(16 / scale_w);
+  sh := Round(16 / scale_h);
+
+  bx := x - show_rect.Left;
+  by := y - show_rect.Top;
+  bx := show_rect.Left + (bx div sw) * sw;
+  by := show_rect.Top + (by div sh) * sh;
+
+  if Not InRange(bx, by, sw, sh, show_rect) then
+    exit;
+
+  Form1.Repaint;
+  DrawRectange(Form1.Canvas, bx, by, sw, sh);
+
+  mbx := (bx - show_rect.Left) div sw;
+  mby := (by - show_rect.Top) div sh;
+
+  caption := IntToStr(mbx) + 'x' + IntToStr(mby);
+
+  GetBlockData(mbx, mby, show_data_type, Form4.data_pixels[0], Form4.data_pixels[1], Form4.data_pixels[2])
 end;
 
 end.
