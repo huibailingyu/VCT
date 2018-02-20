@@ -1530,7 +1530,7 @@ end;
 procedure TForm1.FormMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  if (picture_number > 1) then
+  if (picture_number > 0) then
   begin
     mouse_status := 1;
     if (abs(x - split1) < 3) AND (video[2].FrameNumber > 0) then
@@ -1727,12 +1727,12 @@ begin
     end
     else if Key = ord('A') then  // A left
     begin
-      dlt_x := dlt_x - offset;
+      dlt_x := dlt_x + offset;
       opened := True;
     end
     else if Key = ord('D') then  // D right
     begin
-      dlt_x := dlt_x + offset;
+      dlt_x := dlt_x - offset;
       opened := True;
     end
     else if Key = ord('S') then  // S cneter
