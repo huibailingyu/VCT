@@ -140,7 +140,7 @@ begin
 
   sx := IntToStr(v);
   (Sender As TDrawGrid).Canvas.FillRect(Rect);
-  if v < 128 then
+  if v < 64 then
     cx := 255
   else
     cx := 0;

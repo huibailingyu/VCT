@@ -1860,22 +1860,26 @@ begin
 
   scale_w := video[1].BitMap.Width / show_w;
   scale_h := video[1].BitMap.Height / show_h;
-  sw := Round(16 / scale_w);
-  sh := Round(16 / scale_h);
 
   bx := x - show_rect.Left;
   by := y - show_rect.Top;
-  bx := show_rect.Left + (bx div sw) * sw;
-  by := show_rect.Top + (by div sh) * sh;
 
+  bx := Round(bx * scale_w);
+  by := Round(by * scale_h);
+
+  mbx := (bx shr 4);
+  mby := (by shr 4);
+
+  bx := show_rect.Left + Round(mbx * 16.0 / scale_w);
+  by := show_rect.Top + Round(mby * 16.0 / scale_h);
+
+  sw := Round(16 / scale_w);
+  sh := Round(16 / scale_h);
   if Not InRange(bx, by, sw, sh, show_rect) then
     exit;
 
   Form1.Repaint;
   DrawRectange(Form1.Canvas, bx, by, sw, sh);
-
-  mbx := (bx - show_rect.Left) div sw;
-  mby := (by - show_rect.Top) div sh;
 
   caption := IntToStr(mbx) + 'x' + IntToStr(mby);
 
