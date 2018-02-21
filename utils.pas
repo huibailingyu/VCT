@@ -33,6 +33,17 @@ uses
   PRGBTripleArray = ^TRGBTripleArray;
   TRGBTripleArray = array[0..4095] of TRGBTriple;
 
+  type
+  TRGBATriple = packed record
+    rgbtBlue: Byte;
+    rgbtGreen: Byte;
+    rgbtRed: Byte;
+    alf: Byte;
+  end;
+
+  PRGBATripleArray = ^TRGBATripleArray;
+  TRGBATripleArray = array[0..4095] of TRGBATriple;
+
 const
 YUV420p = 0;
 YUV400p = 1;

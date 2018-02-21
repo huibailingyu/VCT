@@ -50,7 +50,6 @@ type
     procedure yuv_get_y(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var luma: Byte);
     procedure yuv_get_uv(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var u, v: Byte);
     procedure rgb_get_rgb(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte; x, y:integer; var r, g, b: Byte);
-    procedure GetBlockData(mbx, mby : integer; var buf1, buf2, buf3 : array of Byte);
 
     function yuv_read_one_frame(filename: string; id, frm_inx: integer; frame_size: integer) : Boolean;
     function yuv_show_one_frame(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
@@ -63,7 +62,7 @@ var
 
 implementation
 
-uses utils;
+uses utils, main;
 
 {$R *.dfm}
 procedure TForm3.autoset_value(width : integer);
@@ -371,44 +370,6 @@ begin
   else begin
     u := 128;
     v := 128;
-  end;
-end;
-
-procedure TForm3.GetBlockData(mbx, mby : integer; var buf1, buf2, buf3 : array of Byte);
-var
-  x, y, sx, sy, k, k1, id: integer;
-begin
-  id := 1;
-  sx := mbx * 16;
-  sy := mby * 16;
-
-  if pix_fmt >= RGB24 then
-  begin
-    k := 0;
-    for y := sy to sy + 15 do
-      for x := sx to sx + 15 do
-      begin
-        rgb_get_rgb(yuv_width, yuv_height, yuv_stride, pix_fmt, yuv_data[id], x, y,
-                    buf1[k], buf2[k], buf3[k]);
-        k := k + 1;
-      end;
-  end
-  else
-  begin
-    k := 0;
-    k1 := 0;
-    for y := sy to sy + 15 do
-      for x := sx to sx + 15 do
-      begin
-        yuv_get_y(yuv_width, yuv_height, yuv_stride, pix_fmt, yuv_data[id], x, y, buf1[k]);
-        k := k + 1;
-
-        if (y mod 2 = 0) AND (x mod 2 = 0) then
-        begin
-          yuv_get_uv(yuv_width, yuv_height, yuv_stride, pix_fmt, yuv_data[id], x, y, buf2[k1], buf3[k1]);
-          k1 := k1 + 1;
-        end;
-      end;
   end;
 end;
 

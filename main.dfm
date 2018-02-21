@@ -71,34 +71,22 @@ object Form1: TForm1
     object N1: TMenuItem
       Caption = '-'
     end
-    object ShowFrameInfo1: TMenuItem
-      Caption = 'Show Frame Info'
-      OnClick = ShowFrameInfo1Click
-    end
     object ShowInformation1: TMenuItem
-      Caption = 'Show PSNR'
+      Caption = 'Enable PSNR'
       Checked = True
       OnClick = ShowInformation1Click
     end
+    object ShowFrameInfo1: TMenuItem
+      Caption = 'Enable Frame Information'
+      OnClick = ShowFrameInfo1Click
+    end
     object ShowInformation2: TMenuItem
-      Caption = 'Show Information'
+      Caption = 'Show Stream Information'
       OnClick = ShowInformation2Click
     end
-    object ShowData1: TMenuItem
-      Caption = 'Show Data (-)'
-      object YUV1: TMenuItem
-        Caption = 'YUV'
-        GroupIndex = 1
-        RadioItem = True
-        OnClick = YUV1Click
-      end
-      object RGB2: TMenuItem
-        Tag = 1
-        Caption = 'RGB'
-        GroupIndex = 1
-        RadioItem = True
-        OnClick = YUV1Click
-      end
+    object ShowMBData1: TMenuItem
+      Caption = 'Show MB Data'
+      OnClick = ShowMBData1Click
     end
     object N4: TMenuItem
       Caption = '-'

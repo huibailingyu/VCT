@@ -92,9 +92,7 @@ type
     SaveFrame11: TMenuItem;
     ShowInformation2: TMenuItem;
     Image2: TImage;
-    ShowData1: TMenuItem;
-    YUV1: TMenuItem;
-    RGB2: TMenuItem;
+    ShowMBData1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -129,17 +127,13 @@ type
     procedure ShowInformation2Click(Sender: TObject);
     procedure ShowFrameInfo1Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
-    procedure GetBlockData(mbx, mby, show_data_type : Integer; var buf1, buf2, buf3 : array of Byte);
     procedure DrawBlock(x, y : Integer);
-    procedure YUV1Click(Sender: TObject);
+    procedure ShowMBData1Click(Sender: TObject);
   private
     { Private declarations }
-    video : array[1..2] of TVideo;
-
     use_image : Boolean;
 
     split1 : Integer;
-    picture_number : Integer;
     mouse_status : Integer;
 
     show : TBitmap;
@@ -176,10 +170,13 @@ type
  public
     { Public declarations }
     // setting parameters
+    video : array[1..2] of TVideo;
+    picture_number : Integer;
+
     extension : String;
     outfolder: String;
     use_segment_mode : Boolean;
-    show_data_type : integer;
+    input_yuv : Boolean;
     mb_x, mb_y : integer;
     ChangeWindowMessageFilter:function(msg: UINT; dwFlag: DWORD): BOOL; stdcall;
   end;
@@ -189,7 +186,7 @@ var
 
 implementation
 
-uses setting, yuv, info;
+uses setting, yuv, info, mbdata;
 
 {$R *.dfm}
 procedure TForm1.WMDROPFILES(var Msg: TMessage);
@@ -209,26 +206,6 @@ begin
   InitVideo(3);
   InputFiles(Files);
   Files.Free;
-end;
-
-procedure TForm1.YUV1Click(Sender: TObject);
-begin
-  (Sender As TMenuItem).Checked := not (Sender As TMenuItem).Checked;
-  if YUV1.Checked then
-  begin
-    show_data_type := 1;
-    ShowData1.Caption := 'Show Data (YUV)';
-  end
-  else if RGB2.Checked then
-  begin
-    show_data_type := 2;
-    ShowData1.Caption := 'Show Data (RGB)';
-  end
-  else
-  begin
-    show_data_type := 0;
-    ShowData1.Caption := 'Show Data (-)';
-  end;
 end;
 
 function RunFFMPEG(param: String): Integer; stdcall;
@@ -276,6 +253,7 @@ begin
     if video[id].BitMap <> nil then
       video[id].BitMap.free;
     video[id].BitMap := TBitmap.create;
+    video[id].BitMap.PixelFormat := pf24bit;
     video[id].ReadDuration := 2;
     video[id].FileIndex := -1;
     video[id].FileStream := nil;
@@ -1541,13 +1519,6 @@ begin
       move_y := Y;
     end;
   end;
-
-  if (picture_number = 1) AND (show_data_type > 0) AND (windows_size < 2) AND
-     (show_rect.Left <= x) AND (x < show_rect.Right) AND
-     (show_rect.Top <= y) AND (y < show_rect.Bottom) then
-  begin
-    DrawBlock(x, y);
-  end;
 end;
 
 procedure TForm1.FormMouseUp(Sender: TObject; Button: TMouseButton;
@@ -1576,6 +1547,13 @@ begin
   end;
 
   mouse_status := 0;
+
+  if (picture_number > 0) AND (ShowMBData1.Checked) AND (windows_size < 2) AND
+     (show_rect.Left <= x) AND (x < show_rect.Right) AND
+     (show_rect.Top <= y) AND (y < show_rect.Bottom) then
+  begin
+    DrawBlock(x, y);
+  end;
 end;
 
 procedure TForm1.FormPaint(Sender: TObject);
@@ -1663,6 +1641,15 @@ begin
   end
   else
     Form4.Hide;
+end;
+
+procedure TForm1.ShowMBData1Click(Sender: TObject);
+begin
+  showMBData1.Checked := not showMBData1.Checked;
+  if showMBData1.Checked then
+  begin
+    //
+  end;
 end;
 
 procedure TForm1.FormKeyDown(Sender: TObject; var Key: Word;
@@ -1863,34 +1850,6 @@ begin
   canvas.LineTo(x, y);
 end;
 
-procedure TForm1.GetBlockData(mbx, mby, show_data_type : Integer; var buf1, buf2, buf3 : array of Byte);
-var
-  x, y, xx, yy, s, k: integer;
-  Pixels1: PRGBTripleArray;
-begin
-  if show_data_type = 2 then   // RGB
-  begin
-    xx := mbx * 16;
-    yy := mby * 16;
-    for y := yy to yy + 15 do
-    begin
-      s := (y - yy) * 16;
-      Pixels1 := video[1].BitMap.ScanLine[y];
-      for x := xx to xx + 15 do
-      begin
-        k := s + (x-xx);
-        buf1[k] := Pixels1[x].rgbtRed;
-        buf2[k] := Pixels1[x].rgbtGreen;
-        buf3[k] := Pixels1[x].rgbtBlue;
-      end;
-    end;
-  end
-  else if show_data_type = 1 then   // YUV
-  begin
-    Form3.GetBlockData(mbx, mby, buf1, buf2, buf3);
-  end;
-end;
-
 procedure TForm1.DrawBlock(x, y : Integer);
 var
   bx, by, mbx, mby, sw, sh : integer;
@@ -1920,21 +1879,11 @@ begin
 
   caption := IntToStr(mbx) + 'x' + IntToStr(mby);
 
-  GetBlockData(mbx, mby, show_data_type,
-               Form4.data_pixels[0], Form4.data_pixels[1], Form4.data_pixels[2]);
-
-  if Form4.PageControl1.Pages[2].TabVisible then
-  begin
-    Form4.DrawGrid1.Refresh;
-    Form4.DrawGrid2.Refresh;
-    Form4.DrawGrid3.Refresh;
-  end;
-  if Form4.PageControl1.Pages[3].TabVisible then
-  begin
-    Form4.DrawGrid4.Refresh;
-    Form4.DrawGrid5.Refresh;
-    Form4.DrawGrid6.Refresh;
-  end;
+  Form5.GetBlockData(mbx, mby);
+  if Form5.Showing then
+    Form5.RefreshData
+  else
+    Form5.Show;
 end;
 
 end.
