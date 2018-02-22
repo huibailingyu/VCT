@@ -179,6 +179,7 @@ type
     input_yuv : Boolean;
     mb_x, mb_y : integer;
     ChangeWindowMessageFilter:function(msg: UINT; dwFlag: DWORD): BOOL; stdcall;
+    procedure SkipShowPicture(inx1, inx2, wait_flag : Integer);
   end;
 
 var
@@ -1279,6 +1280,15 @@ begin
   end;
 end;
 
+procedure TForm1.SkipShowPicture(inx1, inx2, wait_flag: Integer);
+begin
+  if LoadPicture(inx1, inx2, wait_flag) then
+  begin
+    ShowInformation;
+    ShowPicture;
+  end;
+end;
+
 procedure TForm1.ProgressBar1MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
@@ -1288,11 +1298,7 @@ begin
     Timer1.Enabled := False;
 
   inx := Round(X * ProgressBar1.Max / ProgressBar1.Width);
-  if LoadPicture(inx, inx, 2) then
-  begin
-    ShowInformation;
-    ShowPicture;
-  end;
+  SkipShowPicture(inx, inx, 2);
 end;
 
 procedure TForm1.InputFiles(Files: Tstrings);
@@ -1357,11 +1363,8 @@ begin
   except
     Vinx := video[1].FrameIndex;
   end;
-  if LoadPicture(Vinx, Vinx, 2) then
-  begin
-    ShowInformation;
-    ShowPicture;
-  end;
+
+  SkipShowPicture(Vinx, Vinx, 2);
 end;
 
 procedure TForm1.SaveFrame1Click(Sender: TObject);
@@ -1478,31 +1481,15 @@ begin
 end;
 
 procedure TForm1.Frame12Click(Sender: TObject);
-var
-  opened : Boolean;
 begin
-  opened := False;
   if picture_number > 1 then
-    opened := LoadPicture(video[1].FrameIndex + (Sender as TMenuItem).Tag, video[2].FrameIndex, 0);
-  if opened then
-  begin
-    ShowInformation;
-    ShowPicture;
-  end;
+    SkipShowPicture(video[1].FrameIndex + (Sender as TMenuItem).Tag, video[2].FrameIndex, 0);
 end;
 
 procedure TForm1.Frame21Click(Sender: TObject);
-var
-  opened : Boolean;
 begin
-  opened := False;
   if picture_number > 1 then
-    opened := LoadPicture(video[1].FrameIndex, video[2].FrameIndex + (Sender as TMenuItem).Tag, 0);
-  if opened then
-  begin
-    ShowInformation;
-    ShowPicture;
-  end;
+    SkipShowPicture(video[1].FrameIndex, video[2].FrameIndex + (Sender as TMenuItem).Tag, 0);
 end;
 
 procedure TForm1.FormMouseDown(Sender: TObject; Button: TMouseButton;
