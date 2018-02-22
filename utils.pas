@@ -17,6 +17,9 @@ uses
   function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
   function FormatFileSize(nSize: integer): String;
   function iniFileIO(ini_filename: string; var extension, outfolder, segment_mode: string): Boolean;
+  procedure RGB2Y(rgbtRed, rgbtGreen, rgbtBlue : Byte; var y : Byte);
+  procedure RGB2UV(rgbtRed, rgbtGreen, rgbtBlue : Byte; var u, v : Byte);
+  procedure YUV2RGB(y, u, v : Byte; var r, g, b: Byte);
   procedure diffTwoImage(bmp1, bmp2: TBitMap; diff_mode, threshold : Integer; var bmp0: TBitmap);
   function ffprobeStreamInfo(filename: string): TStrings;
   function ShowFrameInfo(FrameInfo: TStrings; bmp_width, bmp_height: Integer): TBitmap;
@@ -417,12 +420,80 @@ begin
   Result := True;
 end;
 
+//y := int_shr( 2104*r + 4130*g +  802*b +  131072 + 4096, 13);
+procedure RGB2Y(rgbtRed, rgbtGreen, rgbtBlue : Byte; var y : Byte);
+var
+  yy : integer;
+begin
+  yy := (2104*rgbtRed + 4130*rgbtGreen +  802*rgbtBlue +  131072 + 4096) shr 13;
+  if yy <= 0 then
+    y := 0
+  else if yy >= 255 then
+    y := 255
+  else
+    y := yy;
+end;
+
+//u := int_shr(-1214*r - 2384*g + 3598*b + 1048576 + 4096, 13);
+//v := int_shr( 3598*r - 3013*g -  585*b + 1048576 + 4096, 13);
+procedure RGB2UV(rgbtRed, rgbtGreen, rgbtBlue : Byte; var u, v : Byte);
+var
+  uu, vv : integer;
+begin
+  uu := (-1214*rgbtRed - 2384*rgbtGreen + 3598*rgbtBlue +  1048576 + 4096) shr 13;
+  if uu <= 0 then
+    u := 0
+  else if uu >= 255 then
+    u := 255
+  else
+    u := uu;
+
+  vv := ( 3598*rgbtRed - 3013*rgbtGreen -  585*rgbtBlue +  1048576 + 4096) shr 13;
+  if vv <= 0 then
+    v := 0
+  else if vv >= 255 then
+    v := 255
+  else
+    v := vv;
+end;
+
+procedure YUV2RGB(y, u, v : Byte; var r, g, b: Byte);
+var
+ r2, g2, b2 : integer;
+begin
+ //r2 := int_shr(9535*(y-16) + 13074*(v-128), 13);
+ //g2 := int_shr(9535*(y-16) - 6660*(v-128) - 3203*(u-128), 13);
+ //b2 := int_shr(9535*(y-16) + 16531*(u-128), 13);
+ r2 := (9535*(y-16) + 13074*(v-128)                ) shr 13;
+ g2 := (9535*(y-16) -  6660*(v-128) -  3203*(u-128)) shr 13;
+ b2 := (9535*(y-16)                 + 16531*(u-128)) shr 13;
+ if r2 <= 0 then
+   r := 0
+ else if r2 >= 255 then
+   r := 255
+ else
+   r := r2;
+
+ if g2 <= 0 then
+   g := 0
+ else if g2 >= 255 then
+   g := 255
+ else
+   g := g2;
+
+ if b2 <= 0 then
+   b := 0
+ else if b2 >= 255 then
+   b := 255
+ else
+   b := b2;
+end;
+
 // bmp1 bmp2 Must have same image size
 procedure diffTwoImage(bmp1, bmp2: TBitMap; diff_mode, threshold : Integer; var bmp0: TBitmap);
 var
   x, y : Integer;
-  y1, y2: Integer;
-  r, g, b : Real;
+  y1, y2: Byte;
   Pixels1: PRGBTripleArray;
   Pixels2: PRGBTripleArray;
   Pixels0: PRGBTripleArray;
@@ -438,10 +509,6 @@ begin
     diff_mode := 1
   else if diff_mode > 4 then
     diff_mode := 4;
-
-  r := 0.257;
-  g := 0.504;
-  b := 0.098;
 
   for y := 0 to bmp1.Height - 1 do
   begin
@@ -469,8 +536,8 @@ begin
       end
       else if diff_mode = 3 then  // Y diff
       begin
-        y1 := Round(r*Pixels1[x].rgbtRed + g*Pixels1[x].rgbtGreen + b*Pixels1[x].rgbtBlue + 0.5);
-        y2 := Round(r*Pixels2[x].rgbtRed + g*Pixels2[x].rgbtGreen + b*Pixels2[x].rgbtBlue + 0.5);
+        RGB2Y(Pixels1[x].rgbtRed, Pixels1[x].rgbtGreen, Pixels1[x].rgbtBlue, y1);
+        RGB2Y(Pixels2[x].rgbtRed, Pixels2[x].rgbtGreen, Pixels2[x].rgbtBlue, y2);
         Pixels0[x].rgbtGreen := 16;
         Pixels0[x].rgbtBlue := 16;
         if abs(y1 - y2) > threshold then
@@ -480,8 +547,8 @@ begin
       end
       else if diff_mode = 4 then
       begin
-        y1 := Round(r*Pixels1[x].rgbtRed + g*Pixels1[x].rgbtGreen + b*Pixels1[x].rgbtBlue + 0.5);
-        y2 := Round(r*Pixels2[x].rgbtRed + g*Pixels2[x].rgbtGreen + b*Pixels2[x].rgbtBlue + 0.5);
+        RGB2Y(Pixels1[x].rgbtRed, Pixels1[x].rgbtGreen, Pixels1[x].rgbtBlue, y1);
+        RGB2Y(Pixels2[x].rgbtRed, Pixels2[x].rgbtGreen, Pixels2[x].rgbtBlue, y2);
         Pixels0[x].rgbtRed := abs(y1 - y2);
         Pixels0[x].rgbtGreen := abs(y1 - y2);;
         Pixels0[x].rgbtBlue := abs(y1 - y2);;

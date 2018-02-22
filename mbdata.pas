@@ -42,6 +42,7 @@ uses main, utils, yuv;
 procedure TForm5.GetBlockData(mbx, mby: Integer);
 var
   id, x, y, xx, yy, s, k, k1: integer;
+  r, g, b : Byte;
   rgb: PRGBTripleArray;
   rgba : PRGBATripleArray;
   p : pointer;
@@ -53,6 +54,7 @@ begin
     if not Form1.video[id].input_yuv then   // RGB
     begin
       k := 0;
+      k1 := 0;
       for y := yy to yy + 15 do
       begin
          if Form1.video[id].BitMap.PixelFormat = pf24bit then
@@ -64,15 +66,22 @@ begin
         begin
           if Form1.video[id].BitMap.PixelFormat = pf24bit then
           begin
-            data_pixels[id, 0, k] := rgb[x].rgbtRed;
-            data_pixels[id, 1, k] := rgb[x].rgbtGreen;
-            data_pixels[id, 2, k] := rgb[x].rgbtBlue;
+            r := rgb[x].rgbtRed;
+            g := rgb[x].rgbtGreen;
+            b := rgb[x].rgbtBlue;
           end
           else
           begin
-            data_pixels[id, 0, k] := rgba[x].rgbtRed;
-            data_pixels[id, 1, k] := rgba[x].rgbtGreen;
-            data_pixels[id, 2, k] := rgba[x].rgbtBlue;
+            r := rgba[x].rgbtRed;
+            g := rgba[x].rgbtGreen;
+            b := rgba[x].rgbtBlue;
+          end;
+
+          RGB2Y(r, g, b, data_pixels[id, 0, k]);
+          if (((y-yy) mod 2) = 0) AND (((x-xx) mod 2) = 0) then
+          begin
+            RGB2UV(r, g, b, data_pixels[id, 1, k1], data_pixels[id, 2, k1]);
+            k1 := k1 + 1;
           end;
           k := k + 1;
         end;

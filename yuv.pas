@@ -376,7 +376,7 @@ end;
 function TForm3.yuv_show_one_frame(width, height: integer; stride : array of Integer; pix_fmt: Integer; data: PByte):TBitMap;
 var
   Y, U, V : Byte;
-  R, G, B : Real;
+  R, G, B : Byte;
   Pixels: PRGBTripleArray;
   w, h : integer;
 begin
@@ -409,9 +409,7 @@ begin
 
         if yuv_display_mode = YUV_YUV then
         begin
-          R := Y + 1.403 * (V - 128) + 0.5;
-          G := Y - 0.343 * (U - 128) - 0.714 * (V - 128) + 0.5;
-          B := Y + 1.770 * (U - 128) + 0.5;
+          YUV2RGB(Y, U, V, R, G, B);
         end
         else if yuv_display_mode = YUV_Y then
         begin
@@ -432,24 +430,9 @@ begin
           B := V;
         end;
 
-        if R > 255.0 then
-          R := 255
-        else if R < 0.0 then
-          R := 0.0;
-
-        if G > 255.0 then
-          G := 255
-        else if G < 0.0 then
-          G := 0.0;
-
-        if B > 255.0 then
-          B := 255
-        else if B < 0.0 then
-          B := 0.0;
-
-        Pixels[w].rgbtRed   := Round(R);
-        Pixels[w].rgbtGreen := Round(G);
-        Pixels[w].rgbtBlue  := Round(B);
+        Pixels[w].rgbtRed   := R;
+        Pixels[w].rgbtGreen := G;
+        Pixels[w].rgbtBlue  := B;
       end;
     end;
 end;
