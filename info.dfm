@@ -66,9 +66,9 @@ object Form4: TForm4
       object DrawGrid1: TDrawGrid
         Tag = 1
         Left = 0
-        Top = 0
+        Top = 57
         Width = 182
-        Height = 401
+        Height = 344
         Cursor = crHandPoint
         Align = alClient
         ColCount = 2
@@ -79,8 +79,12 @@ object Form4: TForm4
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect]
         ScrollBars = ssVertical
         TabOrder = 0
+        OnDblClick = DrawGrid1DblClick
         OnDrawCell = DrawGrid1DrawCell
+        OnSelectCell = DrawGrid1SelectCell
         ExplicitLeft = -6
+        ExplicitTop = 160
+        ExplicitHeight = 241
         ColWidths = (
           32
           139)
@@ -88,9 +92,9 @@ object Form4: TForm4
       object DrawGrid2: TDrawGrid
         Tag = 2
         Left = 182
-        Top = 0
+        Top = 57
         Width = 182
-        Height = 401
+        Height = 344
         Cursor = crHandPoint
         Align = alRight
         ColCount = 2
@@ -101,12 +105,55 @@ object Form4: TForm4
         Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRowSelect]
         ScrollBars = ssVertical
         TabOrder = 1
+        OnDblClick = DrawGrid2DblClick
         OnDrawCell = DrawGrid1DrawCell
+        OnSelectCell = DrawGrid2SelectCell
         ExplicitLeft = 208
-        ExplicitTop = -3
+        ExplicitTop = 160
+        ExplicitHeight = 238
         ColWidths = (
           32
           139)
+      end
+      object RadioGroup1: TRadioGroup
+        Left = 0
+        Top = 0
+        Width = 364
+        Height = 57
+        Align = alTop
+        Caption = ' Frame Select Mode '
+        TabOrder = 2
+      end
+      object RadioButton1: TRadioButton
+        Left = 16
+        Top = 24
+        Width = 113
+        Height = 17
+        Caption = 'Double Click'
+        Checked = True
+        TabOrder = 3
+        TabStop = True
+        OnClick = RadioButton1Click
+      end
+      object RadioButton2: TRadioButton
+        Tag = 1
+        Left = 135
+        Top = 24
+        Width = 113
+        Height = 17
+        Caption = 'Single Click'
+        TabOrder = 4
+        OnClick = RadioButton1Click
+      end
+      object RadioButton3: TRadioButton
+        Tag = 2
+        Left = 248
+        Top = 24
+        Width = 113
+        Height = 17
+        Caption = 'Not Select'
+        TabOrder = 5
+        OnClick = RadioButton1Click
       end
     end
   end

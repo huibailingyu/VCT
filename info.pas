@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, Grids, ValEdit, ComCtrls, StdCtrls;
+  Dialogs, Grids, ValEdit, ComCtrls, StdCtrls, ExtCtrls;
 
 type
   TForm4 = class(TForm)
@@ -16,11 +16,22 @@ type
     TabSheet3: TTabSheet;
     DrawGrid1: TDrawGrid;
     DrawGrid2: TDrawGrid;
+    RadioGroup1: TRadioGroup;
+    RadioButton1: TRadioButton;
+    RadioButton2: TRadioButton;
+    RadioButton3: TRadioButton;
     procedure FormHide(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure DrawGrid1DrawCell(Sender: TObject; ACol, ARow: Integer;
       Rect: TRect; State: TGridDrawState);
+    procedure DrawGrid1SelectCell(Sender: TObject; ACol, ARow: Integer;
+      var CanSelect: Boolean);
+    procedure DrawGrid2SelectCell(Sender: TObject; ACol, ARow: Integer;
+      var CanSelect: Boolean);
+    procedure DrawGrid1DblClick(Sender: TObject);
+    procedure DrawGrid2DblClick(Sender: TObject);
+    procedure RadioButton1Click(Sender: TObject);
   private
     { Private declarations }
     old_filename : array [1..2] of string;
@@ -28,7 +39,8 @@ type
     { Public declarations }
     picture_number : Integer;
     filename : array [1..2] of string;
-
+    select_mode : Integer;
+    frame_select : array [1..2] of Integer;
     frame_number : array [1..2] of Integer;
     frame_size : array [1..2] of array of integer;
     frame_type : array [1..2] of array of integer;
@@ -42,6 +54,58 @@ implementation
 uses main, utils;
 
 {$R *.dfm}
+
+procedure TForm4.DrawGrid1DblClick(Sender: TObject);
+var
+  dif : Integer;
+begin
+  if select_mode = 0 then
+  begin
+    dif := 0;
+    if Form1.picture_number > 1 then
+      dif := Form1.video[1].FrameIndex - Form1.video[2].FrameIndex;
+    Form1.SkipShowPicture(frame_select[1], frame_select[1] - dif, 2);
+  end;
+end;
+
+procedure TForm4.DrawGrid1SelectCell(Sender: TObject; ACol, ARow: Integer;
+  var CanSelect: Boolean);
+var
+  dif : Integer;
+begin
+  frame_select[1] := ARow;
+  if select_mode = 1 then
+  begin
+    dif := 0;
+    if Form1.picture_number > 1 then
+      dif := Form1.video[1].FrameIndex - Form1.video[2].FrameIndex;
+    Form1.SkipShowPicture(frame_select[1], frame_select[1] - dif, 2);
+  end;
+end;
+
+procedure TForm4.DrawGrid2DblClick(Sender: TObject);
+var
+  dif : Integer;
+begin
+  if select_mode = 0 then
+  begin
+    dif := Form1.video[1].FrameIndex - Form1.video[2].FrameIndex;
+    Form1.SkipShowPicture(frame_select[2] + dif, frame_select[2], 2);
+  end;
+end;
+
+procedure TForm4.DrawGrid2SelectCell(Sender: TObject; ACol, ARow: Integer;
+  var CanSelect: Boolean);
+var
+  dif : Integer;
+begin
+  frame_select[2] := ARow;
+  if select_mode = 0 then
+  begin
+    dif := Form1.video[1].FrameIndex - Form1.video[2].FrameIndex;
+    Form1.SkipShowPicture(frame_select[2] + dif, frame_select[2], 2);
+  end;
+end;
 
 procedure TForm4.DrawGrid1DrawCell(Sender: TObject; ACol, ARow: Integer;
   Rect: TRect; State: TGridDrawState);
@@ -160,6 +224,11 @@ begin
       end;
     end;
   end;
+end;
+
+procedure TForm4.RadioButton1Click(Sender: TObject);
+begin
+  select_mode := (Sender as TRadioButton).Tag;
 end;
 
 end.
