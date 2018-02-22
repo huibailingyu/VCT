@@ -22,6 +22,7 @@ uses
   procedure YUV2RGB(y, u, v : Byte; var r, g, b: Byte);
   procedure diffTwoImage(bmp1, bmp2: TBitMap; diff_mode, threshold : Integer; var bmp0: TBitmap);
   function ffprobeStreamInfo(filename: string): TStrings;
+  function ParserFrameInfo(FrameInfo: TStrings; var frame_size: array of integer; var frame_type: array of integer) : Integer;
   function ShowFrameInfo(FrameInfo: TStrings; bmp_width, bmp_height: Integer): TBitmap;
   var
     log_file: TStrings;
@@ -598,6 +599,49 @@ begin
     end;
     output.Free;
   end;
+end;
+
+function ParserFrameInfo(FrameInfo: TStrings; var frame_size: array of integer; var frame_type: array of integer) : Integer;
+var
+  i, Count, w, h, k : integer;
+  max_size : Real;
+  line : TStrings;
+  s : string;
+  IPBcolor: array [0..3] of Tcolor;
+  color: Tcolor;
+begin
+  Result := 0;
+  if FrameInfo = nil then
+    exit;
+  Count := FrameInfo.Count;
+  if Count <= 1 then
+    exit;
+
+  line := TStringList.Create;
+
+  k := 0;
+  for i := 0 to Count - 1 do
+  begin
+    if Pos('frame,', FrameInfo.Strings[i]) <= 0 then
+      break;
+    line.CommaText := FrameInfo.Strings[i];
+    frame_size[k] := StrToInt(line.Strings[1]);
+    if line.Strings[2] = 'I' then
+      frame_type[k] := 0
+    else if line.Strings[2] = 'P' then
+      frame_type[k] := 1
+    else if line.Strings[2] = 'B' then
+      frame_type[k] := 2
+    else
+      frame_type[k] := 3;
+    k := k + 1;
+  end;
+  line.Free;
+
+  Count := k;
+  if Count <= 1 then
+    Exit;
+  Result := k;
 end;
 
 function ShowFrameInfo(FrameInfo: TStrings; bmp_width, bmp_height: Integer): TBitmap;
