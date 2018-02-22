@@ -143,7 +143,7 @@ begin
     else if ((ww = 0) AND (filename[i] = 'x') OR (filename[i] = 'X') OR (filename[i] = '_') OR (filename[i] = ' ') OR
              (ww > 0) ) then
     begin
-      if n > 1 then
+      if (n > 2) AND (n < 5) then
       begin
         if ww = 0 then
         begin
