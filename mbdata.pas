@@ -4,27 +4,31 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, Grids, StdCtrls;
+  Dialogs, Grids, StdCtrls, Menus;
 
 type
   TForm5 = class(TForm)
     DrawGrid0: TDrawGrid;
-    DrawGrid5: TDrawGrid;
     DrawGrid3: TDrawGrid;
-    DrawGrid8: TDrawGrid;
-    DrawGrid4: TDrawGrid;
-    DrawGrid9: TDrawGrid;
     DrawGrid1: TDrawGrid;
     DrawGrid2: TDrawGrid;
-    DrawGrid6: TDrawGrid;
-    DrawGrid7: TDrawGrid;
+    DrawGrid4: TDrawGrid;
+    DrawGrid5: TDrawGrid;
+    PopupMenu1: TPopupMenu;
+    hreshold01: TMenuItem;
+    ShowUVdata1: TMenuItem;
     procedure FormShow(Sender: TObject);
     procedure DrawGrid0DrawCell(Sender: TObject; ACol, ARow: Integer;
       Rect: TRect; State: TGridDrawState);
+    procedure FormCreate(Sender: TObject);
+    procedure hreshold01Click(Sender: TObject);
+    procedure ShowUVdata1Click(Sender: TObject);
   private
     { Private declarations }
   public
     { Public declarations }
+    diff_threshold : integer;
+    show_uv : Boolean;
     data_pixels : array [1..2, 0..2, 0..255] of Byte;  // [id, chanel, pixel]
     procedure GetBlockData(mbx, mby : Integer);
     procedure RefreshData;
@@ -47,6 +51,7 @@ var
   rgba : PRGBATripleArray;
   p : pointer;
 begin
+  caption := '[' + IntToStr(mbx) + ',' + IntToStr(mby) + ']';
   xx := mbx * 16;
   yy := mby * 16;
   for id := 1 to Form1.picture_number do
@@ -110,50 +115,64 @@ begin
   end;
 end;
 
+procedure TForm5.hreshold01Click(Sender: TObject);
+var
+  str : string;
+  v : integer;
+begin
+  str := InputBox('Input', 'Input Pixel Different threshold', IntToStr(diff_threshold));
+  try
+    v := STrToInt(str);
+
+  except
+    v := diff_threshold;
+  end;
+
+  if diff_threshold <> v then
+  begin
+    diff_threshold := v;
+    hreshold01.Caption := 'Threshold (' + IntToStr(v) + ')';
+    RefreshData;
+  end;
+end;
+
 procedure TForm5.DrawGrid0DrawCell(Sender: TObject; ACol, ARow: Integer;
   Rect: TRect; State: TGridDrawState);
 var
-  v, cx, s, inx, id: Byte;
+  v, cx, s, inx, id, k: Byte;
   sx : string;
 begin
   inx := (Sender As TDrawGrid).Tag;
-  s := 16;
-  if (inx = 1) OR (inx = 2) OR (inx = 6) OR (inx = 7) then
-    s := 8;
+  s := 8;
+  if (inx = 0) OR (inx = 3) then
+    s := 16;
 
   id := 1;
-  if inx > 4 then
+  if inx >= 3 then
   begin
     id := 2;
-    inx := inx - 5;
+    inx := inx - 3;
   end;
 
-  if (inx >= 3) then
-      inx := inx - 2;
-
-  v := data_pixels[id, inx, ARow*s + ACol];
-
-  if (((Sender As TDrawGrid).Tag = 0) AND (Not Form1.video[1].input_yuv)) OR
-     (((Sender As TDrawGrid).Tag = 5) AND (Not Form1.video[2].input_yuv)) then
-    (Sender As TDrawGrid).Canvas.Brush.Color := RGB(v, 16, 16)
-  else
-    (Sender As TDrawGrid).Canvas.Brush.Color := RGB(v, v, v);
-
-  if ((Sender As TDrawGrid).Tag = 1) OR ((Sender As TDrawGrid).Tag = 2) OR
-     ((Sender As TDrawGrid).Tag = 6) OR ((Sender As TDrawGrid).Tag = 7) then
-    (Sender As TDrawGrid).Canvas.Brush.Color := RGB(v, v, v)
-  else if ((Sender As TDrawGrid).Tag = 3) OR ((Sender As TDrawGrid).Tag = 8) then
-    (Sender As TDrawGrid).Canvas.Brush.Color := RGB(16, v, 16)
-  else if ((Sender As TDrawGrid).Tag = 4) OR ((Sender As TDrawGrid).Tag = 9) then
-    (Sender As TDrawGrid).Canvas.Brush.Color := RGB(16, 16, v);
+  k := ARow*s + ACol;
+  v := data_pixels[id, inx, k];
+  (Sender As TDrawGrid).Canvas.Brush.Color := RGB(v, v, v);
 
   sx := IntToStr(v);
   (Sender As TDrawGrid).Canvas.FillRect(Rect);
-  if v < 64 then
-    cx := 255
+
+  if (Form1.picture_number > 1) AND
+     (abs(data_pixels[1, inx, k] - data_pixels[2, inx, k]) > diff_threshold) then
+    (Sender As TDrawGrid).Canvas.Font.Color := RGB(255, 16, 16)
   else
-    cx := 0;
-  (Sender As TDrawGrid).Canvas.Font.Color := RGB(cx, cx, cx);
+  begin
+    if v < 64 then
+      cx := 255
+    else
+      cx := 0;
+    (Sender As TDrawGrid).Canvas.Font.Color := RGB(cx, cx, cx);
+  end;
+
   (Sender As TDrawGrid).Canvas.TextOut(
            Rect.Left + (Rect.Right - Rect.Left - canvas.TextWidth(sx)) div 2,
            Rect.Top  + (Rect.Bottom - Rect.Top - canvas.TextHeight(sx)) div 2,
@@ -163,39 +182,28 @@ end;
 procedure TForm5.RefreshData;
 begin
   DrawGrid0.Refresh;
-  if Form1.video[1].input_yuv then
-  begin
-    DrawGrid1.Refresh;
-    DrawGrid2.Refresh;
-    DrawGrid3.Visible := False;
-    DrawGrid4.Visible := False;
-  end
-  else
-  begin
-    DrawGrid1.Visible := False;
-    DrawGrid2.Visible := False;
-    DrawGrid3.Refresh;
-    DrawGrid4.Refresh;
-  end;
-
+  DrawGrid1.Refresh;
+  DrawGrid2.Refresh;
   if Form1.picture_number = 2 then
   begin
+    DrawGrid3.Refresh;
+    DrawGrid4.Refresh;
     DrawGrid5.Refresh;
-    if Form1.video[1].input_yuv then
-    begin
-      DrawGrid6.Refresh;
-      DrawGrid7.Refresh;
-      DrawGrid8.Visible := False;
-      DrawGrid9.Visible := False;
-    end
-    else
-    begin
-      DrawGrid6.Visible := False;
-      DrawGrid7.Visible := False;
-      DrawGrid8.Refresh;
-      DrawGrid9.Refresh;
-    end;
   end;
+end;
+
+procedure TForm5.ShowUVdata1Click(Sender: TObject);
+begin
+  ShowUVdata1.Checked := not ShowUVdata1.Checked;
+  show_uv := ShowUVdata1.Checked;
+  FormShow(Self);
+end;
+
+procedure TForm5.FormCreate(Sender: TObject);
+begin
+  diff_threshold := 0;
+  show_uv := True;
+  ShowUVdata1.Checked := show_uv;
 end;
 
 procedure TForm5.FormShow(Sender: TObject);
@@ -208,10 +216,11 @@ begin
   else
     Form5.Width := 367;
 
-  if Form1.video[1].input_yuv then
-    Form5.Height := 438
+  if show_uv then
+    Form5.Height := 430
   else
-    Form5.Height := 832;
+    Form5.Height := 290;
+
   RefreshData;
 end;
 

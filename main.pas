@@ -1881,8 +1881,6 @@ begin
   Form1.Repaint;
   DrawRectange(Form1.Canvas, bx, by, sw, sh);
 
-  caption := IntToStr(mbx) + 'x' + IntToStr(mby);
-
   Form5.GetBlockData(mbx, mby);
   if Form5.Showing then
     Form5.RefreshData
