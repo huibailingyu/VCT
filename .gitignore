@@ -1,1 +1,11 @@
 /__history
+*.dcu
+*.bak
+*.exe
+*.zip
+log.file
+*.ddp
+vct.dproj.local
+*.rej
+vct.identcache
+ModelSupport_vct/default.txaPackage
