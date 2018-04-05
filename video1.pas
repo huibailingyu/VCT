@@ -133,17 +133,20 @@ begin
     end;
     VK_SPACE:
     begin
-      if WindowsMediaPlayer1.playState = wmppsPaused then //ÔÝÍ£
+      if WindowsMediaPlayer1.playState = wmppsPaused then
       begin
         WindowsMediaPlayer1.controls.play;
         if Assigned(Form7) and (Form7.WindowsMediaPlayer1.URL <> '') then
           Form7.WindowsMediaPlayer1.controls.play;
       end
-      else if  WindowsMediaPlayer1.playState = wmppsPlaying then//Õý²¥·Å
+      else if  WindowsMediaPlayer1.playState = wmppsPlaying then
       begin
         WindowsMediaPlayer1.controls.pause;
         if Assigned(Form7) and (Form7.WindowsMediaPlayer1.URL <> '') then
+        begin
           Form7.WindowsMediaPlayer1.controls.pause;
+          Form7.WindowsMediaPlayer1.controls.currentPosition := WindowsMediaPlayer1.controls.currentPosition;
+        end;
       end
       else
       begin
