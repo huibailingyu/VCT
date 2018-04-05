@@ -68,6 +68,10 @@ object Form1: TForm1
       Caption = 'Open Files'
       OnClick = OpenFile11Click
     end
+    object MediaPlayer1: TMenuItem
+      Caption = 'MediaPlayer'
+      OnClick = MediaPlayer1Click
+    end
     object N1: TMenuItem
       Caption = '-'
     end

@@ -93,6 +93,7 @@ type
     ShowInformation2: TMenuItem;
     Image2: TImage;
     ShowMBData1: TMenuItem;
+    MediaPlayer1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -126,9 +127,9 @@ type
     procedure None1Click(Sender: TObject);
     procedure ShowInformation2Click(Sender: TObject);
     procedure ShowFrameInfo1Click(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
     procedure DrawBlock(x, y : Integer);
     procedure ShowMBData1Click(Sender: TObject);
+    procedure MediaPlayer1Click(Sender: TObject);
   private
     { Private declarations }
     use_image : Boolean;
@@ -187,7 +188,7 @@ var
 
 implementation
 
-uses setting, yuv, info, mbdata;
+uses setting, yuv, info, mbdata, video1, video2;
 
 {$R *.dfm}
 procedure TForm1.WMDROPFILES(var Msg: TMessage);
@@ -766,39 +767,6 @@ begin
   ResetForm(0);
 end;
 
-procedure TForm1.Button1Click(Sender: TObject);
-var
-  i, W, H, x, y : integer;
-  filename: string;
-  bmp1, bmp2 : TBitmap;
-begin
-  w := 6;
-  H := 6;
-  bmp1 := TBitmap.Create;
-  for y := 0 to H-1 do
-  begin
-    for x:= 0 to W - 1 do
-    begin
-      i := y*W + x + 1;
-      filename := 'E:\Demo_result\beatudy\face\' + inttostr(i) + '.bmp';
-      bmp1.LoadFromFile(filename);
-      if i = 1 then
-      begin
-        bmp2 := TBitmap.Create;
-        bmp2.PixelFormat := pf24bit;
-        bmp2.Width := bmp1.Width * W;
-        bmp2.Height := bmp1.Height * H;
-      end;
-      bmp2.Canvas.CopyRect(Rect(x*bmp1.Width, y*bmp1.Height, (x+1)*bmp1.Width, (y+1)*bmp1.Height),
-                         bmp1.Canvas,
-                         Rect(0, 0, bmp1.Width, bmp1.Height));
-    end;
-  end;
-  bmp2.SaveToFile('E:\Demo_result\beatudy\face\all.bmp');
-  bmp1.Free;
-  bmp2.Free;
-end;
-
 function TForm1.CallFFmpegDecode(id, fid:Integer; output_filename: String): THandle;
 var
   param : string;
@@ -1142,6 +1110,26 @@ begin
 
   if (picture_number = 2) AND (Result = True) then
     diffTwoImage(video[1].BitMap, video[2].BitMap, diff_mode, diff_threshold, diff);
+end;
+
+procedure TForm1.MediaPlayer1Click(Sender: TObject);
+begin
+  if video[1].FullFileName = '' then
+    video[1].FullFileName := 'E:\Demo_result\momo\momo\upload_test\test8_v.mp4';
+  if video[2].FullFileName = '' then
+    video[2].FullFileName := 'E:\Demo_result\momo\momo\upload_test\test8_v_map1_544x960_roi12_800K_map1_720x1280_roi12_800K.mp4';
+
+  MediaPlayer1.Checked := not MediaPlayer1.Checked;
+  if MediaPlayer1.Checked then
+  begin
+    Form6.Show;
+    Form7.Show;
+  end
+  else
+  begin
+    Form6.Hide;
+    Form7.Hide;
+  end;
 end;
 
 procedure TForm1.None1Click(Sender: TObject);
