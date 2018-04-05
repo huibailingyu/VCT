@@ -70,20 +70,7 @@ object Form1: TForm1
     end
     object MediaPlayer1: TMenuItem
       Caption = 'MediaPlayer'
-      object LeftRight1: TMenuItem
-        Tag = 1
-        Caption = 'Left-Right'
-        GroupIndex = 1
-        RadioItem = True
-        OnClick = LeftRight1Click
-      end
-      object TopBottom1: TMenuItem
-        Tag = 2
-        Caption = 'Top-Bottom'
-        GroupIndex = 1
-        RadioItem = True
-        OnClick = LeftRight1Click
-      end
+      OnClick = MediaPlayer1Click
     end
     object N1: TMenuItem
       Caption = '-'

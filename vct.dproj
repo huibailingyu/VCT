@@ -63,9 +63,6 @@
 			<DCCReference Include="video1.pas">
 				<Form>Form6</Form>
 			</DCCReference>
-			<DCCReference Include="video2.pas">
-				<Form>Form7</Form>
-			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

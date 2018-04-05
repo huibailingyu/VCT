@@ -94,8 +94,6 @@ type
     Image2: TImage;
     ShowMBData1: TMenuItem;
     MediaPlayer1: TMenuItem;
-    LeftRight1: TMenuItem;
-    TopBottom1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -131,7 +129,7 @@ type
     procedure ShowFrameInfo1Click(Sender: TObject);
     procedure DrawBlock(x, y : Integer);
     procedure ShowMBData1Click(Sender: TObject);
-    procedure LeftRight1Click(Sender: TObject);
+    procedure MediaPlayer1Click(Sender: TObject);
   private
     { Private declarations }
     use_image : Boolean;
@@ -190,7 +188,7 @@ var
 
 implementation
 
-uses setting, yuv, info, mbdata, video1, video2;
+uses setting, yuv, info, mbdata, video1;
 
 {$R *.dfm}
 procedure TForm1.WMDROPFILES(var Msg: TMessage);
@@ -855,45 +853,6 @@ begin
   end;
 end;
 
-procedure TForm1.LeftRight1Click(Sender: TObject);
-begin
-  if picture_number = 0 then
-  begin
-    if OpenDialog1.Execute() then
-    begin
-      video[1].FullFileName := OpenDialog1.Files[0];
-      picture_number := 1;
-      if OpenDialog1.Files.Count > 1 then
-      begin
-        video[2].FullFileName := OpenDialog1.Files[1];
-        picture_number := 2;
-      end;
-    end;
-  end;
-
-  (Sender as TmenuItem).Checked := not (Sender as TmenuItem).Checked;
-  Form6.layout := (Sender as TmenuItem).Tag;
-  if (Sender as TmenuItem).Checked then
-  begin
-    Form6.Hide;
-    Form7.Hide;
-    if picture_number > 0 then
-      Form6.Show;
-    if picture_number > 1 then
-    begin
-      Form7.Show;
-      Form6.SetFocus;
-    end;
-  end
-  else
-  begin
-    if picture_number > 0 then
-      Form6.Hide;
-    if picture_number > 1 then
-      Form7.Hide;
-  end;
-end;
-
 function TForm1.LoadDBI(id, Width, Height : Integer; Pos: int64): Boolean;
 var
   y: Integer;
@@ -1151,6 +1110,38 @@ begin
 
   if (picture_number = 2) AND (Result = True) then
     diffTwoImage(video[1].BitMap, video[2].BitMap, diff_mode, diff_threshold, diff);
+end;
+
+procedure TForm1.MediaPlayer1Click(Sender: TObject);
+begin
+  if picture_number = 0 then
+  begin
+    if OpenDialog1.Execute() then
+    begin
+      video[1].FullFileName := OpenDialog1.Files[0];
+      picture_number := 1;
+      if OpenDialog1.Files.Count > 1 then
+      begin
+        video[2].FullFileName := OpenDialog1.Files[1];
+        picture_number := 2;
+      end;
+    end;
+  end;
+
+  if picture_number = 0 then
+    exit;
+
+  MediaPlayer1.Checked := not MediaPlayer1.Checked;
+  if MediaPlayer1.Checked then
+  begin
+    if picture_number > 0 then
+      Form6.Show;
+  end
+  else
+  begin
+    if Form6.Showing then
+      Form6.Hide;
+  end;
 end;
 
 procedure TForm1.None1Click(Sender: TObject);

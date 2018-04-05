@@ -8,8 +8,7 @@ uses
   yuv in 'yuv.pas' {Form3},
   info in 'info.pas' {Form4},
   mbdata in 'mbdata.pas' {Form5},
-  video1 in 'video1.pas' {Form6},
-  video2 in 'video2.pas' {Form7};
+  video1 in 'video1.pas' {Form6};
 
 {$R *.res}
 
@@ -21,6 +20,5 @@ begin
   Application.CreateForm(TForm4, Form4);
   Application.CreateForm(TForm5, Form5);
   Application.CreateForm(TForm6, Form6);
-  Application.CreateForm(TForm7, Form7);
   Application.Run;
 end.
