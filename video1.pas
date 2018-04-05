@@ -13,11 +13,13 @@ type
     procedure FormResize(Sender: TObject);
     procedure WindowsMediaPlayer1KeyDown(ASender: TObject; nKeyCode,
       nShiftState: SmallInt);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   protected
     procedure WMMove(var Message: TWMMove); message WM_MOVE;
   private
     { Private declarations }
   public
+    layout : integer;
     { Public declarations }
   end;
 
@@ -34,10 +36,27 @@ procedure TForm6.WMMove(var Message: TWMMove);
 begin
   if Assigned(Form7) then
   begin
-    Form7.Left := Left + Width;
-    Form7.Top := Top;
+    if layout = 1 then
+    begin
+      Form7.Left := Left + Width;
+      Form7.Top := Top;
+    end
+    else if layout = 2 then
+    begin
+      Form7.Left := Left;
+      Form7.Top := Top + Height;
+    end;
   end;
   inherited;
+end;
+
+procedure TForm6.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  if NOT Form7.Showing then
+  begin
+    Form1.LeftRight1.Checked := False;
+    Form1.TopBottom1.Checked := False;
+  end;
 end;
 
 procedure TForm6.FormResize(Sender: TObject);
@@ -46,27 +65,26 @@ begin
   begin
     Form7.Width := Width;
     Form7.Height := Height;
-    Form7.Top := Top;
-    Form7.Left := Left + Width;
+    if layout = 1 then
+    begin
+      Form7.Top := Top;
+      Form7.Left := Left + Width;
+    end
+    else if layout = 2 then
+    begin
+      Form7.Left := Left;
+      Form7.Top := Top + Height;
+    end;
   end;
 end;
 
 procedure TForm6.FormShow(Sender: TObject);
 var
   filename : string;
-  OpenMediaDialog : TOpenDialog;
 begin
   filename := '';
   if Form1.video[1].FullFileName <> '' then
-    filename := Form1.video[1].FullFileName
-  else
-  begin
-    OpenMediaDialog := TOpenDialog.Create(Self);
-    OpenMediaDialog.Filter := 'All Video Files (*.*)|*.*';
-    if OpenMediaDialog.Execute() then
-      filename := OpenMediaDialog.FileName;
-    OpenMediaDialog.Free;
-  end;
+    filename := Form1.video[1].FullFileName;
 
   if filename <> '' then
   begin
@@ -74,8 +92,21 @@ begin
     begin
       Caption := ExtractFileName(filename);
       WindowsMediaPlayer1.settings.setMode('loop', true);
-      //Caption := IntToStr(Form6.Width) + ' X ' + IntToStr(Form6.Height);
       WindowsMediaPlayer1.URL := filename;
+
+      Top := 0;
+      Left := 0;
+      if layout = 2 then
+      begin
+        Width := Screen.Width;
+        Height := Screen.Height div 2;
+      end
+      else
+      begin
+        Width := Screen.Width div 2;
+        Height := Screen.Height;
+      end;
+
       WindowsMediaPlayer1.controls.play;
       if Assigned(Form7) and (Form7.WindowsMediaPlayer1.URL <> '') then
         Form7.WindowsMediaPlayer1.controls.play;

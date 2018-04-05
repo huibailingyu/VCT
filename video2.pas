@@ -10,6 +10,7 @@ type
   TForm7 = class(TForm)
     WindowsMediaPlayer1: TWindowsMediaPlayer;
     procedure FormShow(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
   public
@@ -25,6 +26,15 @@ uses main, video1;
 
 {$R *.dfm}
 
+procedure TForm7.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  if NOT Form6.Showing then
+  begin
+    Form1.LeftRight1.Checked := False;
+    Form1.TopBottom1.Checked := False;
+  end;
+end;
+
 procedure TForm7.FormShow(Sender: TObject);
 var
   filename : string;
@@ -39,8 +49,16 @@ begin
     begin
       Width := Form6.Width;
       Height := Form6.Height;
-      Top := Form6.Top;
-      Left := Form6.Left + Form6.Width;
+      if Form6.layout = 1 then
+      begin
+        Top := Form6.Top;
+        Left := Form6.Left + Form6.Width;
+      end
+      else if Form6.layout = 2 then
+      begin
+        Left := Form6.Left;
+        Top := Form6.Top + Form6.Height;
+      end;
 
       Caption := ExtractFileName(filename);
       WindowsMediaPlayer1.settings.setMode('loop', true);

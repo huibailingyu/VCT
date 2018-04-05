@@ -1,6 +1,7 @@
 object Form6: TForm6
   Left = 0
   Top = 0
+  BorderIcons = [biSystemMenu]
   Caption = 'Form6'
   ClientHeight = 207
   ClientWidth = 338
@@ -11,6 +12,7 @@ object Form6: TForm6
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnClose = FormClose
   OnResize = FormResize
   OnShow = FormShow
   PixelsPerInch = 96

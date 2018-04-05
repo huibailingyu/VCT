@@ -1,6 +1,7 @@
 object Form7: TForm7
   Left = 0
   Top = 0
+  BorderIcons = [biSystemMenu]
   Caption = 'Form7'
   ClientHeight = 318
   ClientWidth = 352
@@ -11,6 +12,7 @@ object Form7: TForm7
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnClose = FormClose
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
