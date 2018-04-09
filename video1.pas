@@ -40,36 +40,25 @@ end;
 
 procedure TForm6.FormResize(Sender: TObject);
 begin
-  Panel1.Left := 0;
-  Panel1.Top := 0;
   if layout = 1 then
   begin
     Panel1.Width := ClientWidth div 2;
-    Panel1.Height := ClientHeight;
+    Panel1.Align := alLeft;
 
-    Panel2.Left := Panel1.Width;
-    Panel2.Top := Panel1.Top;
+    Panel2.Align := alClient;
   end
   else if layout = 2 then
   begin
-    Panel1.Width := ClientWidth;
     Panel1.Height := ClientHeight div 2;
+    Panel1.Align := alTop;
 
-    Panel2.Left := Panel1.Left;
-    Panel2.Top := Panel1.Height;
+    Panel2.Align := alClient;
   end
   else if layout = 0 then
   begin
-    Panel1.Width := ClientWidth;
-    Panel1.Height := ClientHeight;
+    Panel1.Align := alClient;
+    Panel2.Align := alNone;
     Panel2.Visible := False;
-  end;
-
-  if layout > 0 then
-  begin
-    Panel2.Visible := True;
-    Panel2.Width := Panel1.Width;
-    Panel2.Height := Panel1.Height;
   end;
 end;
 
@@ -101,6 +90,7 @@ begin
         WindowsMediaPlayer2.URL := filename2;
 
         Form6.SetBounds(Screen.Width div 4, Screen.Height div 4, Screen.Width div 2, Screen.Height div 2);
+        FormResize(Self);
         WindowsMediaPlayer1.controls.play;
         WindowsMediaPlayer2.controls.play;
       end;
