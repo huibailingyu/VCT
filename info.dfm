@@ -1,10 +1,10 @@
 object Form4: TForm4
   Left = 0
   Top = 0
-  BorderStyle = bsDialog
+  BorderIcons = [biSystemMenu, biMinimize]
   Caption = 'Video Information'
-  ClientHeight = 429
-  ClientWidth = 372
+  ClientHeight = 419
+  ClientWidth = 362
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,62 +13,70 @@ object Form4: TForm4
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   OnHide = FormHide
+  OnResize = FormResize
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object PageControl1: TPageControl
     Left = 0
     Top = 0
-    Width = 372
-    Height = 429
-    ActivePage = TabSheet1
+    Width = 362
+    Height = 419
+    ActivePage = TabSheet4
     Align = alClient
     DoubleBuffered = True
     ParentDoubleBuffered = False
     TabOrder = 0
-    object TabSheet1: TTabSheet
-      Caption = 'Video1 Information'
-      object ValueListEditor1: TValueListEditor
-        Left = 0
-        Top = 0
-        Width = 364
-        Height = 401
-        Align = alClient
-        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goAlwaysShowEditor, goThumbTracking]
-        TabOrder = 0
-        ColWidths = (
-          116
-          242)
+    ExplicitWidth = 372
+    ExplicitHeight = 429
+    object TabSheet4: TTabSheet
+      Caption = 'Stream Information'
+      ImageIndex = 3
+      ExplicitWidth = 364
+      ExplicitHeight = 401
+      object Label1: TLabel
+        Left = 176
+        Top = 224
+        Width = 151
+        Height = 13
+        Caption = 'DISPOSITION:timed-thumbnails'
+        Visible = False
       end
-    end
-    object TabSheet2: TTabSheet
-      Caption = 'Video2 Information'
-      ImageIndex = 1
-      object ValueListEditor2: TValueListEditor
+      object StringGrid1: TStringGrid
         Left = 0
         Top = 0
-        Width = 364
-        Height = 401
+        Width = 354
+        Height = 391
         Align = alClient
-        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goColSizing, goAlwaysShowEditor, goThumbTracking]
+        Color = clInfoBk
+        ColCount = 3
+        DefaultColWidth = 96
+        DefaultRowHeight = 18
+        FixedColor = clInfoBk
+        FixedCols = 0
+        FixedRows = 0
+        Options = [goFixedVertLine, goFixedHorzLine, goVertLine, goHorzLine, goRangeSelect, goColSizing, goRowSelect]
+        ParentShowHint = False
+        ShowHint = True
         TabOrder = 0
-        ColWidths = (
-          114
-          244)
+        OnDrawCell = StringGrid1DrawCell
+        ExplicitWidth = 364
+        ExplicitHeight = 401
       end
     end
     object TabSheet3: TTabSheet
-      Caption = 'Frame Inforamtion'
+      Caption = 'Frame Information'
       ImageIndex = 2
-      ExplicitLeft = 0
-      ExplicitTop = 28
+      ExplicitWidth = 364
+      ExplicitHeight = 401
       object DrawGrid1: TDrawGrid
         Tag = 1
         Left = 0
         Top = 57
-        Width = 182
-        Height = 344
+        Width = 172
+        Height = 334
         Cursor = crHandPoint
         Align = alClient
         ColCount = 2
@@ -82,19 +90,18 @@ object Form4: TForm4
         OnDblClick = DrawGrid1DblClick
         OnDrawCell = DrawGrid1DrawCell
         OnSelectCell = DrawGrid1SelectCell
-        ExplicitLeft = -6
-        ExplicitTop = 160
-        ExplicitHeight = 241
+        ExplicitWidth = 182
+        ExplicitHeight = 344
         ColWidths = (
           32
           139)
       end
       object DrawGrid2: TDrawGrid
         Tag = 2
-        Left = 182
+        Left = 172
         Top = 57
         Width = 182
-        Height = 344
+        Height = 334
         Cursor = crHandPoint
         Align = alRight
         ColCount = 2
@@ -108,9 +115,8 @@ object Form4: TForm4
         OnDblClick = DrawGrid2DblClick
         OnDrawCell = DrawGrid1DrawCell
         OnSelectCell = DrawGrid2SelectCell
-        ExplicitLeft = 208
-        ExplicitTop = 160
-        ExplicitHeight = 238
+        ExplicitLeft = 182
+        ExplicitHeight = 344
         ColWidths = (
           32
           139)
@@ -118,11 +124,12 @@ object Form4: TForm4
       object RadioGroup1: TRadioGroup
         Left = 0
         Top = 0
-        Width = 364
+        Width = 354
         Height = 57
         Align = alTop
         Caption = ' Frame Select Mode '
         TabOrder = 2
+        ExplicitWidth = 364
       end
       object RadioButton1: TRadioButton
         Left = 16

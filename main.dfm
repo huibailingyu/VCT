@@ -90,6 +90,7 @@ object Form1: TForm1
     end
     object ShowMBData1: TMenuItem
       Caption = 'Show MB Data'
+      Enabled = False
       OnClick = ShowMBData1Click
     end
     object N4: TMenuItem
