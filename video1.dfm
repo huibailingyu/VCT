@@ -1,7 +1,7 @@
 object Form6: TForm6
   Left = 0
   Top = 0
-  BorderIcons = [biSystemMenu]
+  BorderIcons = [biSystemMenu, biMaximize]
   Caption = 'Form6'
   ClientHeight = 362
   ClientWidth = 704
