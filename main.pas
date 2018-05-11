@@ -913,7 +913,7 @@ var
    pos : int64;
    filename : array[1..2] of string;
    next_filename : string;
-   i, id, k: Integer;
+   i, id, k, dd: Integer;
    ThreadHandle: array[1..2] of THandle;
    condition : Boolean;
    bmp : TBitMap;
@@ -1017,6 +1017,11 @@ begin
     Form1.Cursor := crDefault;
   end;
 
+  if (inx[1] < video[1].FrameIndex) then
+      dd := -1
+  else
+      dd := 1;
+
   // load filestrean
   Result := True;
   k := 0;
@@ -1044,7 +1049,7 @@ begin
         end
         else
         begin
-          k := k + 1;
+          k := k + dd;
           filename[id] := video[id].FileNamePrefix + IntToStr(inx[id] + k) + extension;
           if k < 10 then
             continue
