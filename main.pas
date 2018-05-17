@@ -277,6 +277,7 @@ var
   MyText: TStringlist;
   info :TStrings;
   dur, fps : Real;
+  r_frame_rate, avg_frame_rate : Real;
   segment_duration : Integer;
 begin
   video[id].FullFileName := filename;
@@ -365,22 +366,15 @@ begin
   show.Width := video[id].FrameWidth;
   show.Height := video[id].FrameHeight;
 
-  tmp := output.Values['r_frame_rate'];
-  if tmp = 'N/A' then
-    tmp := output.Values['avg_frame_rate'];
-  if tmp <> 'N/A' then
-  begin
-    d := Pos('/', tmp);
-    try
-      if d > 0 then
-      begin
-        w := length(tmp);
-        video[id].FrameRate := StrToInt(Copy(tmp, 1, d-1)) * 1.0 / StrToInt(Copy(tmp, d+1, w-d));
-        video[id].FrameRate := RoundTo(video[id].FrameRate, -2);
-      end;
-    except
+  avg_frame_rate := calculate_float(output.Values['avg_frame_rate']);
+  if (avg_frame_rate > 0.0) AND (avg_frame_rate < 120.0) then
+    video[id].FrameRate := avg_frame_rate
+  else begin
+    r_frame_rate := calculate_float(output.Values['r_frame_rate']);
+    if (r_frame_rate > 0.0) AND (r_frame_rate < 120.0) then
+      video[id].FrameRate := r_frame_rate
+    else
       video[id].FrameRate := -1;
-    end;
   end;
 
   tmp := output.Values['bit_rate'];

@@ -24,6 +24,7 @@ uses
   function ffprobeStreamInfo(filename: string): TStrings;
   function ParserFrameInfo(FrameInfo: TStrings; var frame_size: array of integer; var frame_type: array of integer) : Integer;
   function ShowFrameInfo(FrameInfo: TStrings; bmp_width, bmp_height: Integer): TBitmap;
+  function calculate_float(str: string): Real;
   var
     log_file: TStrings;
 
@@ -724,6 +725,28 @@ begin
   end;
   frame_size := nil;
   frame_type := nil;
+end;
+
+function calculate_float(str: string): Real;
+var
+  d, w : Integer;
+begin
+  result := -1;
+  if str <> 'N/A' then
+  begin
+    try
+      d := Pos('/', str);
+      if d > 0 then
+      begin
+        w := length(str);
+        result := StrToInt(Copy(str, 1, d-1)) * 1.0 / StrToInt(Copy(str, d+1, w-d));
+        result := RoundTo(result, -2);
+      end
+      else
+        result := StrToFloat(str);
+    except
+    end;
+  end;
 end;
 
 end.
