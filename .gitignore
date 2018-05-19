@@ -1,7 +1,6 @@
 /__history
 *.dcu
 *.bak
-*.exe
 *.zip
 log.file
 *.ddp
