@@ -1291,13 +1291,18 @@ end;
 procedure TForm1.ProgressBar1MouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 var
-  inx : integer;
+  inx1, inx2 : integer;
 begin
   if Timer1.Enabled then
     Timer1.Enabled := False;
 
-  inx := Round(X * ProgressBar1.Max / ProgressBar1.Width);
-  SkipShowPicture(inx, inx, 2);
+  inx1 := Round(X * ProgressBar1.Max / ProgressBar1.Width);
+  if picture_number > 1 then
+    inx2 := inx1 + (video[2].FrameIndex - video[1].FrameIndex)
+  else
+    inx2 := inx1;
+
+  SkipShowPicture(inx1, inx2, 2);
 end;
 
 procedure TForm1.InputFiles(Files: Tstrings);
