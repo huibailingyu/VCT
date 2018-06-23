@@ -1654,11 +1654,21 @@ begin
   case Key of
     VK_LEFT:
     begin
-      opened := LoadPicture(video[1].FrameIndex - 1, video[2].FrameIndex - 1, 0);
+      if GetKeyState(VK_LSHIFT) < 0 then
+        opened := LoadPicture(video[1].FrameIndex - 1, video[2].FrameIndex, 0)
+      else if GetKeyState(VK_RSHIFT) < 0 then
+        opened := LoadPicture(video[1].FrameIndex, video[2].FrameIndex - 1, 0)
+      else
+        opened := LoadPicture(video[1].FrameIndex - 1, video[2].FrameIndex - 1, 0);
     end;
     VK_RIGHT:
     begin
-      opened := LoadPicture(video[1].FrameIndex + 1, video[2].FrameIndex + 1, 0);
+      if GetKeyState(VK_LSHIFT) < 0 then
+        opened := LoadPicture(video[1].FrameIndex + 1, video[2].FrameIndex, 0)
+      else if GetKeyState(VK_RSHIFT) < 0 then
+        opened := LoadPicture(video[1].FrameIndex, video[2].FrameIndex + 1, 0)
+      else
+        opened := LoadPicture(video[1].FrameIndex + 1, video[2].FrameIndex + 1, 0);
     end;
     VK_UP:
     begin
