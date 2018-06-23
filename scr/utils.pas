@@ -14,6 +14,8 @@ uses
   function FileReady(filename:String; filesize: int64): Boolean;
   function DeleteDirectory(NowPath: string): Boolean;
   function psnr(bmp1, bmp2: TBitMap): string;
+  function psnr_float(bmp1, bmp2: TBitMap): Real;
+  function file_psnr(filename1, filename2: String): Real;
   function FindAVIHeader(fs : TFileStream; filesize: integer): integer;
   function FormatFileSize(nSize: integer): String;
   function iniFileIO(ini_filename: string; var extension, outfolder, segment_mode: string): Boolean;
@@ -330,7 +332,7 @@ begin
   end;
 end;
 
-function psnr(bmp1, bmp2: TBitMap): string;
+function psnr_float(bmp1, bmp2: TBitMap): Real;
 var
   x, y : Integer;
   y1, y2: Integer;
@@ -339,36 +341,74 @@ var
   Pixels1: PRGBTripleArray;
   Pixels2: PRGBTripleArray;
 begin
+  if (bmp1 = nil) or (bmp2 = nil) then
+  begin
+    Result := 0.0;
+    Exit;
+  end;
+
   r := 0.257;
   g := 0.504;
   b := 0.098;
-
-  if (bmp1.Width = bmp2.Width) AND (bmp1.Height = bmp2.Height) then
+  mse := 0;
+  for y := 0 to bmp1.Height - 1 do
   begin
-    mse := 0;
-    for y := 0 to bmp1.Height - 1 do
+    Pixels1 := bmp1.ScanLine[y];
+    Pixels2 := bmp2.ScanLine[y];
+    for x := 0 to bmp1.Width - 1 do
     begin
-      Pixels1 := bmp1.ScanLine[y];
-      Pixels2 := bmp2.ScanLine[y];
-      for x := 0 to bmp1.Width - 1 do
-      begin
-        y1 := Round(r*Pixels1[x].rgbtRed + g*Pixels1[x].rgbtGreen + b*Pixels1[x].rgbtBlue + 0.5);
-        y2 := Round(r*Pixels2[x].rgbtRed + g*Pixels2[x].rgbtGreen + b*Pixels2[x].rgbtBlue + 0.5);
-        mse := mse + (y1-y2)*(y1-y2);
-      end;
+      y1 := Round(r*Pixels1[x].rgbtRed + g*Pixels1[x].rgbtGreen + b*Pixels1[x].rgbtBlue + 0.5);
+      y2 := Round(r*Pixels2[x].rgbtRed + g*Pixels2[x].rgbtGreen + b*Pixels2[x].rgbtBlue + 0.5);
+      mse := mse + (y1-y2)*(y1-y2);
     end;
-    mse := mse / (bmp1.Width * bmp1.Height);
+  end;
+  mse := mse / (bmp1.Width * bmp1.Height);
 
-    if mse > 0.0 then
-    begin
-      mse := 10*log10(255*255/mse);
-      Result := 'PSNR Y: ' + FloatToStr(RoundTo(mse, -2))
-    end
-    else
-      Result := 'Same';
+  if mse > 0.0 then
+  begin
+    mse := 10*log10(255*255/mse);
+    Result := RoundTo(mse, -2);
   end
   else
+    Result := 999.0;
+end;
+
+function psnr(bmp1, bmp2: TBitMap): string;
+begin
+  if (bmp1.Width = bmp2.Width) AND (bmp1.Height = bmp2.Height) then
+    Result := 'PSNR Y: ' + FloatToStr(RoundTo(psnr_float(bmp1, bmp2), -2))
+  else
     Result := 'Image Size not same';
+end;
+
+function file_psnr(filename1, filename2: String):Real;
+var
+  bmp1, bmp2 : TBitMap;
+begin
+  if (not FileExists(filename1)) or (not FileExists(filename2)) then
+  begin
+    Result := 0.0;
+    Exit;
+  end;
+
+  bmp1 := TBitmap.Create;
+  try
+    AssignImage(filename1, bmp1);
+  except
+    Result := 0.0;
+    Exit;
+  end;
+
+  bmp2 := Tbitmap.Create;
+  try
+    AssignImage(filename2, bmp2);
+    Result := psnr_float(bmp1, bmp2);
+    bmp1.Free;
+    bmp2.Free;
+  except
+    bmp1.Free;
+    Result := 0.0;
+  end;
 end;
 
 function FormatFileSize(nSize: integer): String;

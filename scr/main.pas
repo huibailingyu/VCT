@@ -94,6 +94,8 @@ type
     Image2: TImage;
     ShowMBData1: TMenuItem;
     MediaPlayer1: TMenuItem;
+    N3: TMenuItem;
+    Audo1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -130,6 +132,7 @@ type
     procedure DrawBlock(x, y : Integer);
     procedure ShowMBData1Click(Sender: TObject);
     procedure MediaPlayer1Click(Sender: TObject);
+    procedure Audo1Click(Sender: TObject);
   private
     { Private declarations }
     use_image : Boolean;
@@ -164,7 +167,7 @@ type
     procedure ShowPicture;
     procedure ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
     procedure ResetForm(windows_size: Integer);
-
+    function get_psnr(inx1, inx2: Integer): Real;
  protected
     procedure WMDROPFILES(var Msg : TMessage); message WM_DROPFILES;
 
@@ -759,6 +762,113 @@ begin
 
   DragAcceptFiles(Handle, True);
   ResetForm(0);
+end;
+
+function TForm1.get_psnr(inx1, inx2: Integer): Real;
+var
+   inx, fid, FrameRate : array[1..2] of Integer;
+   filename : array[1..2] of string;
+   i, id : Integer;
+   bmp : array[1..2] of TBitMap;
+   time_out_cnt : Integer;
+begin
+  Result := 0.0;
+  inx[1] := inx1;
+  inx[2] := inx2;
+  for id:=1 to picture_number do
+  begin
+    if (inx[id] > 0) and (inx[id] <= video[id].FrameNumber) then
+    begin
+       inx[id] := inx[id] - 1;
+       if video[id].input_yuv then
+      begin
+        bmp[id] := Form3.get_yuv_frame(video[id].FullFileName, id, inx[id]);
+        if id = picture_number then
+        begin
+          Result := psnr_float(bmp[1], bmp[2]);
+          Exit;
+        end
+        else
+          continue;
+      end;
+
+      FrameRate[id] := ceil(video[id].FrameRate) * video[id].ReadDuration;
+      if use_segment_mode then
+      begin
+        for i := 0 to High(video[id].FrameIndexList) - 1 do
+          if (video[id].FrameIndexList[i] <= inx[id]) and (inx[id] < video[id].FrameIndexList[i+1]) then
+            break;
+        fid[id] := i;
+      end
+      else
+        fid[id] := inx[id] div FrameRate[id];
+
+      if use_image then
+        filename[id] := video[id].FileNamePrefix + IntToStr(inx[id]) + extension
+      else
+        filename[id] := video[id].FileNamePrefix + 'ss' + IntToStr(fid[id]) + extension;
+
+      if Not FileExists(filename[id]) then
+        CallFFmpegDecode(id, fid[id], filename[id]);
+
+      if id = picture_number then
+      begin
+        Form1.Cursor := crHourGlass;
+        time_out_cnt := 10;
+        while (not FileExists(filename[1])) and (time_out_cnt > 0) do
+        begin
+          time_out_cnt := time_out_cnt - 1;
+          sleep(100);
+        end;
+
+        if picture_number > 1 then
+        begin
+          time_out_cnt := 10;
+          while (not FileExists(filename[2])) and (time_out_cnt > 0) do
+          begin
+            time_out_cnt := time_out_cnt - 1;
+            sleep(100);
+          end;
+        end;
+
+        Result := file_psnr(filename[1], filename[2]);
+        Form1.Cursor := crDefault;
+      end;
+    end;
+  end;
+end;
+
+procedure TForm1.Audo1Click(Sender: TObject);
+var
+  inx1, inx2, i, range, best_i : integer;
+  p, max_psnr : Real;
+begin
+  inx1 := video[1].FrameIndex;
+  inx2 := video[2].FrameIndex;
+
+  best_i := inx2;
+  max_psnr := get_psnr(inx1, inx2);
+
+  range := 10;
+  for i := 1 to range do
+  begin
+    p := get_psnr(inx1, inx2 - i);
+    if p > max_psnr then
+    begin
+      best_i := inx2 - i;
+      max_psnr := p;
+    end;
+
+    p := get_psnr(inx1, inx2 + i);
+    if p > max_psnr then
+    begin
+      best_i := inx2 + i;
+      max_psnr := p;
+    end;
+  end;
+
+  if best_i <> inx2 then
+    SkipShowPicture(inx1, best_i, 0);
 end;
 
 function TForm1.CallFFmpegDecode(id, fid:Integer; output_filename: String): THandle;

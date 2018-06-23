@@ -222,6 +222,13 @@ object Form1: TForm1
         Caption = 'Frame2 ++'
         OnClick = Frame21Click
       end
+      object N3: TMenuItem
+        Caption = '-'
+      end
+      object Audo1: TMenuItem
+        Caption = 'Audo'
+        OnClick = Audo1Click
+      end
     end
     object N5: TMenuItem
       Caption = '-'
