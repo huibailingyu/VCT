@@ -45,11 +45,10 @@ uses main, utils, yuv;
 
 procedure TForm5.GetBlockData(mbx, mby: Integer);
 var
-  id, x, y, xx, yy, s, k, k1: integer;
+  id, x, y, xx, yy, k, k1: integer;
   r, g, b : Byte;
   rgb: PRGBTripleArray;
   rgba : PRGBATripleArray;
-  p : pointer;
 begin
   caption := '[' + IntToStr(mbx) + ',' + IntToStr(mby) + ']';
   xx := mbx * 16;
@@ -207,9 +206,6 @@ begin
 end;
 
 procedure TForm5.FormShow(Sender: TObject);
-var
-  id, c, x, y : integer;
-  s : string;
 begin
   if Form1.picture_number = 2 then
     Form5.Width := 734
