@@ -2,9 +2,11 @@
 *.dcu
 *.bak
 *.zip
+*.exe
 log.file
 *.ddp
 vct.dproj.local
 *.rej
 vct.identcache
 ModelSupport_vct/default.txaPackage
+scr/__history/
