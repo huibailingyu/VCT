@@ -96,6 +96,7 @@ type
     MediaPlayer1: TMenuItem;
     N3: TMenuItem;
     Audo1: TMenuItem;
+    butterfly1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -584,6 +585,9 @@ begin
   end
   else if picture_number = 2 then
   begin
+    if butterfly1.Checked then
+      Split1 := Form1.ClientWidth div 2;
+
     scale_x := video[1].BitMap.Width / show_w;
     pos := Round(scale_x * (Split1 - show_rect.Left)) + sou.Left;
 
@@ -1609,7 +1613,7 @@ end;
 procedure TForm1.FormMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  if (picture_number > 0) then
+  if (picture_number > 0) and (not butterfly1.Checked) then
   begin
     mouse_status := 1;
     if (abs(x - split1) < 3) AND (video[2].FrameNumber > 0) then

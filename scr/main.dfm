@@ -171,6 +171,13 @@ object Form1: TForm1
         RadioItem = True
         OnClick = None1Click
       end
+      object butterfly1: TMenuItem
+        Tag = 5
+        Caption = 'Butterfly'
+        GroupIndex = 1
+        RadioItem = True
+        OnClick = None1Click
+      end
       object RGBdiff1: TMenuItem
         Tag = 1
         Caption = 'RGB diff'

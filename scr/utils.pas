@@ -549,8 +549,8 @@ begin
 
   if diff_mode < 1 then
     diff_mode := 1
-  else if diff_mode > 4 then
-    diff_mode := 4;
+  else if diff_mode > 5 then
+    diff_mode := 5;
 
   for y := 0 to bmp1.Height - 1 do
   begin
@@ -594,6 +594,12 @@ begin
         Pixels0[x].rgbtRed := abs(y1 - y2);
         Pixels0[x].rgbtGreen := abs(y1 - y2);;
         Pixels0[x].rgbtBlue := abs(y1 - y2);;
+      end
+      else if diff_mode = 5 then
+      begin
+        Pixels0[x].rgbtRed   := Pixels2[bmp0.Width-1-x].rgbtRed;
+        Pixels0[x].rgbtGreen := Pixels2[bmp0.Width-1-x].rgbtGreen;
+        Pixels0[x].rgbtBlue  := Pixels2[bmp0.Width-1-x].rgbtBlue;
       end;
     end;
   end;
