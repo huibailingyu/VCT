@@ -650,12 +650,8 @@ end;
 
 function ParserFrameInfo(FrameInfo: TStrings; var frame_size: array of integer; var frame_type: array of integer) : Integer;
 var
-  i, Count, w, h, k : integer;
-  max_size : Real;
+  i, Count, k : integer;
   line : TStrings;
-  s : string;
-  IPBcolor: array [0..3] of Tcolor;
-  color: Tcolor;
 begin
   Result := 0;
   if FrameInfo = nil then
@@ -696,14 +692,10 @@ var
   i, Count, w, h, k : integer;
   max_size : Real;
   line : TStrings;
-  s : string;
   frame_size: array of integer;
   frame_type: array of integer;
   IPBcolor: array [0..3] of Tcolor;
-  color: Tcolor;
 begin
-  //FrameInfo.SaveToFile('e:\ttt.txt');
-
   Result := nil;
   if FrameInfo = nil then
     exit;
