@@ -98,6 +98,7 @@ type
     Audo1: TMenuItem;
     butterfly1: TMenuItem;
     SaveFrm1Frm22: TMenuItem;
+    Frm2GoTo1: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -136,6 +137,7 @@ type
     procedure MediaPlayer1Click(Sender: TObject);
     procedure Audo1Click(Sender: TObject);
     procedure SavePictureDialog1TypeChange(Sender: TObject);
+    procedure Frm2GoTo1Click(Sender: TObject);
   private
     { Private declarations }
     use_image : Boolean;
@@ -1467,7 +1469,7 @@ end;
 procedure TForm1.GoToFrame1Click(Sender: TObject);
 var
  input : string;
- Vinx, Vmax : Integer;
+ Vinx, Vmax, Vinx2 : Integer;
 begin
   Vmax := video[1].FrameNumber;
   if video[2].FrameNumber > 1 then
@@ -1486,7 +1488,37 @@ begin
     Vinx := video[1].FrameIndex;
   end;
 
-  SkipShowPicture(Vinx, Vinx, 2);
+  if picture_number > 1 then
+    Vinx2 := Vinx + (video[2].FrameIndex - video[1].FrameIndex)
+  else
+    Vinx2 := Vinx;
+
+  SkipShowPicture(Vinx, Vinx2, 2);
+end;
+
+procedure TForm1.Frm2GoTo1Click(Sender: TObject);
+var
+ input : string;
+ Vinx, Vmax : Integer;
+begin
+  if picture_number < 2 then
+    exit;
+
+  Vmax := video[2].FrameNumber;
+  input := InputBox('Input Frame index',
+                    'Frame index range [1.. ' + IntToStr(Vmax) + ']',
+                    IntToStr(video[2].FrameIndex));
+  try
+    Vinx := StrToInt(input);
+    if Vinx < 1 then
+       Vinx := 1
+    else if Vinx >= Vmax then
+       Vinx := Vmax;
+  except
+    Vinx := video[2].FrameIndex;
+  end;
+
+  SkipShowPicture(video[1].FrameIndex, Vinx, 2);
 end;
 
 procedure TForm1.SaveFrame1Click(Sender: TObject);

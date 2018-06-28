@@ -97,8 +97,12 @@ object Form1: TForm1
       Caption = '-'
     end
     object GoToFrame1: TMenuItem
-      Caption = 'GoTo Frame'
+      Caption = 'Frm1 + Frm2 GoTo'
       OnClick = GoToFrame1Click
+    end
+    object Frm2GoTo1: TMenuItem
+      Caption = 'Frm2 GoTo'
+      OnClick = Frm2GoTo1Click
     end
     object N2: TMenuItem
       Caption = '-'
