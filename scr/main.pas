@@ -97,6 +97,7 @@ type
     N3: TMenuItem;
     Audo1: TMenuItem;
     butterfly1: TMenuItem;
+    SaveFrm1Frm22: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure OpenFile11Click(Sender: TObject);
     procedure GoToFrame1Click(Sender: TObject);
@@ -134,6 +135,7 @@ type
     procedure ShowMBData1Click(Sender: TObject);
     procedure MediaPlayer1Click(Sender: TObject);
     procedure Audo1Click(Sender: TObject);
+    procedure SavePictureDialog1TypeChange(Sender: TObject);
   private
     { Private declarations }
     use_image : Boolean;
@@ -1487,14 +1489,23 @@ end;
 
 procedure TForm1.SaveFrame1Click(Sender: TObject);
 var
-  id, x : Integer;
+  id, x, i, k : Integer;
+  ss : array [1..2] of string;
 begin
-  if SavePictureDialog1.Execute then
+  id := (Sender as TMenuItem).Tag;
+  if (id <= 0) or (id > 4) then
+    exit;
+
+  if picture_number = 1 then
+    id := 1;
+
+  for i := 1 to picture_number do
+    ss[i] := ChangeFileExt(video[i].FileName, '') + '_f' + IntToStr(video[i].FrameIndex);
+
+  if id = 4 then
   begin
-    id := (Sender as TMenuItem).Tag;
-    if (id = 1) OR (id = 2) then
-      video[id].BitMap.SaveToFile(SavePictureDialog1.FileName)
-    else
+    SavePictureDialog1.FileName := ss[1] + '_' + ss[2] + SavePictureDialog1.DefaultExt;
+    if SavePictureDialog1.Execute then
     begin
       x := Round(Split1 * video[1].BitMap.Width / show_w);
       show.Canvas.Pen.Color := clWhite;
@@ -1503,6 +1514,30 @@ begin
       show.Canvas.LineTo(x, show.Height);
       show.SaveToFile(SavePictureDialog1.FileName);
     end;
+  end
+  else
+  begin
+    for i:= 1 to 2 do
+    begin
+      k := id and i;
+      if k > 0 then
+      begin
+        SavePictureDialog1.FileName := ss[i] + SavePictureDialog1.DefaultExt;
+        if SavePictureDialog1.Execute then
+          video[i].BitMap.SaveToFile(SavePictureDialog1.FileName);
+      end;
+    end;
+  end;
+end;
+
+procedure TForm1.SavePictureDialog1TypeChange(Sender: TObject);
+begin
+  case (Sender as TSavePictureDialog).FilterIndex of
+    1: (Sender as TSavePictureDialog).DefaultExt := '.jpg';
+    2: (Sender as TSavePictureDialog).DefaultExt := '.png';
+    3: (Sender as TSavePictureDialog).DefaultExt := '.bmp'
+    else
+       (Sender as TSavePictureDialog).DefaultExt := '.jpg';
   end;
 end;
 

@@ -120,6 +120,11 @@ object Form1: TForm1
         Caption = 'Save Frm1 Frm2'
         OnClick = SaveFrame1Click
       end
+      object SaveFrm1Frm22: TMenuItem
+        Tag = 3
+        Caption = 'Save Frm1 and Frm2'
+        OnClick = SaveFrame1Click
+      end
     end
     object YUVSetting1: TMenuItem
       Caption = 'YUV Setting'
@@ -274,11 +279,13 @@ object Form1: TForm1
     Top = 24
   end
   object SavePictureDialog1: TSavePictureDialog
+    Ctl3D = False
+    DefaultExt = '.jpg'
     Filter = 
-      'All (*.png;*.jpg;*.jpeg;*.bmp;*.ico;*.emf;*.wmf)|*.png;*.jpg;*.j' +
-      'peg;*.bmp;*.ico;*.emf;*.wmf|Portable Network Graphics (*.png)|*.' +
-      'png|JPEG Image File (*.jpg)|*.jpg|JPEG Image File (*.jpeg)|*.jpe' +
-      'g|Bitmaps (*.bmp)|*.bmp'
+      'JPEG Image File (*.jpg)|*.jpg|Portable Network Graphics (*.png)|' +
+      '*.png|Bitmaps (*.bmp)|*.bmp'
+    FilterIndex = 0
+    OnTypeChange = SavePictureDialog1TypeChange
     Left = 192
     Top = 56
   end
