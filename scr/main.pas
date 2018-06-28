@@ -1029,6 +1029,8 @@ var
    bmp : TBitMap;
 begin
   Result := False;
+  filename[1] := '';
+  filename[2] := '';
   inx[1] := inx1;
   inx[2] := inx2;
   for id:=1 to picture_number do
@@ -1119,10 +1121,10 @@ begin
   if wait_flag = 2 then
   begin
     Form1.Cursor := crHourGlass;
-    while not FileExists(filename[1]) do
+    while (filename[1] <> '') and (not FileExists(filename[1])) do
       sleep(100);
     if picture_number > 1 then
-      while not FileExists(filename[2]) do
+      while (filename[2] <> '') and (not FileExists(filename[2])) do
          sleep(100);
     Form1.Cursor := crDefault;
   end;
