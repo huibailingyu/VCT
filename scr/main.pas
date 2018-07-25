@@ -173,6 +173,7 @@ type
     procedure ResetWindow(VideoWidth, VideoHeight, ToSource: Integer);
     procedure ResetForm(windows_size: Integer);
     function get_psnr(inx1, inx2: Integer): Real;
+    procedure DeleteFiles;
  protected
     procedure WMDROPFILES(var Msg : TMessage); message WM_DROPFILES;
 
@@ -287,11 +288,16 @@ var
   dur, fps : Real;
   r_frame_rate, avg_frame_rate : Real;
   segment_duration : Integer;
+  time_string : string;
 begin
   video[id].FullFileName := filename;
   if video[id].FileName = '' then
     video[id].FileName := ExtractFileName(filename);
-  video[id].FileNamePrefix := outfolder + ChangeFileExt(video[id].FileName, '') + '_' + IntToStr(id) + '_';
+  time_string := StringReplace(DateToStr(Now()), '/', '', [rfReplaceAll]) + '_' +
+                 StringReplace(TimeToStr(Now()), ':', '', [rfReplaceAll]);
+  video[id].FileNamePrefix := outfolder + time_string + '_' +
+                              ChangeFileExt(video[id].FileName, '') + '_' +
+                              IntToStr(id) + '_';
   video[id].FileSizeFormat := FormatFileSize( FileSizeByName(filename));
   video[id].FrameIndex := 0;
 
@@ -1945,13 +1951,40 @@ begin
   end;
 end;
 
+procedure TForm1.DeleteFiles;
+var
+  i : integer;
+  filename : string;
+begin
+  for i:=0 to video[1].FrameNumber + 1 do begin
+    if use_image then
+      filename := video[1].FileNamePrefix + IntToStr(i) + extension
+    else
+      filename := video[1].FileNamePrefix + 'ss' + IntToStr(i) + extension;
+    if FileExists(filename) then
+      DeleteFile(filename);
+  end;
+
+  if picture_number = 2 then
+  begin
+    for i:=0 to video[2].FrameNumber + 1 do begin
+      if use_image then
+        filename := video[2].FileNamePrefix + IntToStr(i) + extension
+      else
+        filename := video[2].FileNamePrefix + 'ss' + IntToStr(i) + extension;
+      if FileExists(filename) then
+        DeleteFile(filename);
+    end;
+  end;
+end;
+
 procedure TForm1.FormDestroy(Sender: TObject);
 begin
   show.Free;
   if diff <> nil then
     diff.Free;
   if DirectoryExists(outfolder) then
-    DeleteDirectory(outfolder);
+    DeleteFiles;
 end;
 
 procedure TForm1.Timer1Timer(Sender: TObject);
